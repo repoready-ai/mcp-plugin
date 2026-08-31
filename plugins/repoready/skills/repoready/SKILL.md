@@ -12,8 +12,8 @@ All analysis runs on RepoReady's servers via the `repoready` MCP tools.
 ## Authentication
 
 Tools fail with 401/unauthorized until the user has signed in once: tell them
-to run `/mcp` and complete the browser sign-in (organization members use their
-institutional email, e.g. "Sign in with Microsoft").
+to run `/mcp` and complete the browser sign-in (organization members enter
+their institutional email and confirm the magic-link code from their inbox).
 
 ## Analyzing the current project (local code)
 

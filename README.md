@@ -16,8 +16,8 @@ Analyze the reproducibility of research code from Claude Code using
 ```
 
 First use opens a browser sign-in. Organization members: use your
-institutional email ("Sign in with Microsoft") — analyses are funded by your
-organization's plan.
+institutional email (magic-link code sent to your inbox) — analyses are
+funded by your organization's plan.
 
 Not using Claude Code? Point any MCP client at
 `https://api.repoready.dev/api/mcp` — see the RepoReady docs.
