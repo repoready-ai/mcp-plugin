@@ -1,0 +1,15 @@
+{
+  "name": "repoready",
+  "owner": {
+    "name": "RepoReady",
+    "url": "https://repoready.dev"
+  },
+  "plugins": [
+    {
+      "name": "repoready",
+      "source": "./plugins/repoready",
+      "description": "Analyze research code for reproducibility from your coding agent: run RepoReady analyses, read findings with file:line citations, fix them, and share reports.",
+      "version": "1.0.0"
+    }
+  ]
+}

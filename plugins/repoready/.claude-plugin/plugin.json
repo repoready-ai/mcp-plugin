@@ -1,0 +1,9 @@
+{
+  "name": "repoready",
+  "description": "RepoReady reproducibility analysis for research code — MCP server plus workflow guidance.",
+  "version": "1.0.0",
+  "author": {
+    "name": "RepoReady",
+    "url": "https://repoready.dev"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "repoready": {
+      "type": "http",
+      "url": "https://api.repoready.dev/api/mcp"
+    }
+  }
+}
