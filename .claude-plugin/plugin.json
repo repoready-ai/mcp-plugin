@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "author": {
     "name": "RepoReady",
-    "url": "https://repoready.dev"
-  }
+    "url": "https://repoready.ai"
+  },
+  "homepage": "https://repoready.ai"
 }

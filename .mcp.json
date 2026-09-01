@@ -2,7 +2,7 @@
   "mcpServers": {
     "repoready": {
       "type": "http",
-      "url": "https://api.repoready.dev/api/mcp"
+      "url": "${REPOREADY_MCP_URL:-https://api.repoready.ai/api/mcp}"
     }
   }
 }
