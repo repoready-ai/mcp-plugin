@@ -20,8 +20,10 @@ The tools come from the RepoReady MCP server at
 - **Codex**: `codex mcp add repoready --url https://api.repoready.ai/api/mcp`,
   then `codex mcp login repoready`.
 - **claude.ai / Claude Desktop**: add the URL as a custom connector under
-  Settings → Connectors (on Team/Enterprise plans an org Owner must add it
+  Customize → Connectors (on Team/Enterprise plans an org Owner must add it
   first under Organization settings → Connectors).
+- **Claude Science**: add the URL under Connectors → Add connector →
+  Remote URL (keep the default Streamable HTTP transport).
 - **Other MCP clients**: add a remote HTTP server with that URL; OAuth is
   negotiated automatically.
 

@@ -9,7 +9,7 @@
       "name": "repoready",
       "source": "./",
       "description": "Analyze research code for reproducibility from your coding agent: run RepoReady analyses, read findings with file:line citations, fix them, and share reports.",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ]
 }

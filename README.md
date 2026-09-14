@@ -80,9 +80,19 @@ npx skills add repoready-ai/mcp-plugin
 
 ## claude.ai and Claude Desktop
 
-Add the server URL as a custom connector under **Settings → Connectors**.
+The plugin brings the connector along: under **Customize → Plugins → Add →
+Add marketplace**, sync `repoready-ai/mcp-plugin`, add the **repoready**
+plugin, and click **Connect** on its RepoReady connector. Alternatively, add
+the server URL as a custom connector under **Customize → Connectors**.
 On Team/Enterprise plans, an organization Owner adds it once under
 **Organization settings → Connectors**; members then click **Connect**.
+
+## Claude Science
+
+Add the server under **Connectors → Add connector → Remote URL** (the
+default transport, Streamable HTTP, is the right one), then connect to sign
+in. The workflow skill is optional: **Skills → Add skill → Import from
+GitHub** with `repoready-ai/mcp-plugin`.
 
 ## For maintainers
 
