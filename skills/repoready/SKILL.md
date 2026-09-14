@@ -35,8 +35,10 @@ confirm the magic-link code from their inbox).
 ## Analyzing the current project (local code)
 
 1. `repoready:request_upload_url` → returns `uploadKey` + `uploadUrl`.
-2. Zip the project from its root, excluding bulky/irrelevant dirs:
-   `zip -r /tmp/code.zip . -x '.git/*' -x 'node_modules/*' -x '.venv/*' -x '__pycache__/*'`
+2. Zip the project from its root, excluding bulky/irrelevant dirs and secrets:
+   `zip -r /tmp/code.zip . -x '.git/*' -x 'node_modules/*' -x '.venv/*' -x '__pycache__/*' -x '.env' -x '.env.*'`
+   The zip is uploaded to RepoReady's servers — add exclusions for anything
+   else that must not leave the machine (credentials, private data files).
 3. Upload: `curl -sf -X PUT -H 'Content-Type: application/zip' --upload-file /tmp/code.zip '<uploadUrl>'`
    (quote the URL — it contains `&`).
 4. `repoready:analyze_repo` with `{source: {type: 'upload', uploadKey}}`. Pass

@@ -2,6 +2,8 @@
   "name": "repoready",
   "description": "RepoReady reproducibility analysis for research code — MCP server plus workflow guidance.",
   "version": "1.0.0",
+  "license": "MIT",
+  "repository": "https://github.com/repoready-ai/mcp-plugin",
   "author": {
     "name": "RepoReady",
     "url": "https://repoready.ai"

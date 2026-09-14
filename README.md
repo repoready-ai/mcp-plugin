@@ -28,10 +28,19 @@ This repository is both a **Claude Code plugin marketplace** and an
 - **Existing account?** Nothing to prepare — the OAuth sign-in below uses
   your existing account.
 
+## Data handling & cost
+
+Analyses run on RepoReady's servers: for local projects the workflow zips
+your code (excluding `.git`, dependencies, caches, and `.env` files) and
+uploads it for analysis. Don't run it on code that must not leave your
+machine, and extend the zip exclusions for anything else you don't want
+uploaded. Runs are metered — free trial runs or your organization's plan,
+which may enforce a daily cap.
+
 ## Install — Claude Code
 
 ```
-/plugin marketplace add repoready/claude-plugin
+/plugin marketplace add repoready-ai/mcp-plugin
 /plugin install repoready@repoready
 ```
 
@@ -66,7 +75,7 @@ codex mcp login repoready
 instructions into your agent's skills directory:
 
 ```
-npx skills add repoready/claude-plugin
+npx skills add repoready-ai/mcp-plugin
 ```
 
 ## claude.ai and Claude Desktop
@@ -77,17 +86,19 @@ On Team/Enterprise plans, an organization Owner adds it once under
 
 ## For maintainers
 
-The server URL in [.mcp.json](.mcp.json) defaults to production and can be
-overridden per machine without editing the plugin:
+The server URL in [.mcp.json](.mcp.json) is the production endpoint. To
+test against a non-production host, either edit `.mcp.json` in a local
+checkout installed as a local marketplace (below), or add the server
+directly without the plugin:
 
 ```bash
-export REPOREADY_MCP_URL="https://<your-non-production-host>/api/mcp"
+claude mcp add --transport http repoready-dev https://<your-non-production-host>/api/mcp
 ```
 
 To test the plugin before (or without) publishing, add this folder as a
 local marketplace:
 
 ```
-/plugin marketplace add /path/to/repoready-claude-plugin
+/plugin marketplace add /path/to/mcp-plugin
 /plugin install repoready@repoready
 ```
