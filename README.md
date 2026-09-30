@@ -16,7 +16,27 @@ This repository is both a **Claude Code plugin marketplace** and an
 - a **skill** ([`skills/repoready/`](skills/repoready/SKILL.md)) that teaches
   agents the analyze → fix → re-analyze workflow,
 - the **`/repoready:analyze`** command (Claude Code) to analyze the current
-  repository.
+  repository, and **`/repoready:status`** to show your projects and running
+  analyses.
+
+## Tools
+
+The server (version 1.1.0) offers:
+
+| Tool | What it does |
+|---|---|
+| `get_account` | Who is signed in, who pays for analyses (organization, own key, plan or free trial), the organization's daily cap, connected GitHub accounts |
+| `list_projects` | Your projects, found by name or by repository (`owner/repo`, a GitHub URL or the git remote), with their latest run |
+| `get_project` | One project: code versions, latest results, analyses in progress, badge |
+| `list_runs` | Your analyses across projects or for one project, e.g. the ones still running |
+| `get_run_status` | Progress of one analysis |
+| `get_report` / `get_findings` | Results: score, summary, findings with file:line citations and suggested fixes |
+| `request_upload_url` | Upload a zip of your local code |
+| `analyze_repo` | Start an analysis of a GitHub repository (private ones through the RepoReady GitHub App) or an upload; it joins your existing project for that repository |
+| `create_share_link` / `revoke_share_link` | Make a read-only report link, and withdraw it |
+
+Agents are told to look for existing projects before starting anything, and
+to ask you before any analysis, since analyses are paid.
 
 ## Accounts
 
@@ -45,8 +65,8 @@ which may enforce a daily cap.
 ```
 
 Restart Claude Code, run `/mcp`, and complete the browser sign-in.
-Then either run `/repoready:analyze` or just ask, e.g. *"how reproducible is
-this repo?"*.
+Then either run `/repoready:analyze` (or `/repoready:status`) or just ask,
+e.g. *"how reproducible is this repo?"*.
 
 Prefer no plugin? The server alone:
 
