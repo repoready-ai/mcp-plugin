@@ -4,5 +4,6 @@
 - [Shared workflow](../../AGENTS.md): coordination, delivery and context storage.
 - [Cloud setup](../CLOUD_SETUP.md): checkout setup and validation.
 - [Plans](../plans/README.md): repository location for future plans.
+- [Plugin 2.0.0 decisions](plugin-v2-decisions.md): 2.x flow only, price and payer before the yes, the words, what was kept from the review-UX lane (2026-10-10).
 
 Save durable, non-secret lessons as topic files here and add concise index links. Original local notes are retained on the source machine; private account, SSH and integration details have not been copied into this public plugin repository.

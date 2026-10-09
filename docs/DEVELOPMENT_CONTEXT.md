@@ -1,6 +1,6 @@
 # RepoReady MCP plugin development context
 
-Snapshot: 2026-10-02. Verify actual Git history and remote branches before work.
+Snapshot: 2026-10-02, updated 2026-10-10 (plugin 2.0.0 hand-off below). Verify actual Git history and remote branches before work.
 
 Repository: `repoready-ai/mcp-plugin`. This distributes the remote connection, workflow skill and Claude commands. The server implementation and 2.0 contracts live in `repoready-ai/repoready-monorepo` on staging.
 
@@ -9,7 +9,7 @@ At migration, local main and cached origin/main = `ed84863` (v1.0.1). Local `fea
 ## Contract and packaging
 
 - Production MCP connection is `https://api.repoready.ai/api/mcp`, Streamable HTTP with OAuth. Staging uses a separately configured connection; never change the shipped production URL just to run a local test.
-- Keep README, skills/repoready/SKILL.md, commands, .mcp.json, plugin.json and marketplace.json consistent with the selected server version. The current README still describes 0–100 scores; the monorepo's 2.0 target is levels 0–3, with 3 best. Adapt consumer wording only when the corresponding contract is available on the target server.
+- Keep README, skills/repoready/SKILL.md, commands, .mcp.json, plugin.json and marketplace.json consistent with the selected server version. Since 2.0.0 (branch `claude/plugin-v2`) the plugin describes the 2.x server: one level per check on the ladder L0 Incomplete, L1 Available, L2 Rerunnable, L3 Re-executed, L4 Reproduced (L3 and L4 not offered yet), no score. Production serves 1.x until R1, so `main` keeps 1.0.1 until then. Adapt consumer wording only when the corresponding contract is available on the target server.
 - Preserve “find existing work first” behavior, upload exclusions (especially .env, .git, dependencies and caches), OAuth/account instructions, explicit paid-run approval and data-handling explanations.
 - RepoReady also appears in the Helmholtz marketplace. Its source/manifest updates are separate from this repository. Historical local notes describe the fork review, not current PR state; verify before changing or publishing there.
 - Avoid UI claims based on old notes: verify current product paths for each supported client. Claude Science skill import and claude.ai plugin connector installation are different flows.
@@ -19,6 +19,7 @@ At migration, local main and cached origin/main = `ed84863` (v1.0.1). Local `fea
 | Date | Owner | Branch / baseline | Area | State / next step |
 | --- | --- | --- | --- | --- |
 | 2026-10-02 | Codex local | feat/mcp-v1.1 @ 56fd16f | Shared context, agent guidance, Claude settings | Local documentation/setup change; no manifest, runtime endpoint, version, server, publishing or paid analysis changed. |
+| 2026-10-10 | Claude local (monorepo Track C, C.2) | claude/plugin-v2 from feat/mcp-v1.1 @ 752a28d, worktree `../repoready-mcp-plugin-v2` | Plugin 2.0.0: skill, commands, README, manifests, CHANGELOG | Built and committed locally; not pushed, not published. Next: owner's pushes at R1 (see the hand-off below). |
 
 Read the monorepo's DEVELOPMENT_CONTEXT.md and docs/MCP_SERVER.md at the matching pushed branch when changing tools. If the cloud task only has this repo, request the relevant server contract or inspect it using authorized repository access. Record ownership and contract changes here before overlapping Claude's work.
 

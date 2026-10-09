@@ -1,12 +1,28 @@
 # RepoReady for coding agents
 
-Analyze the reproducibility of research code from your coding agent using
-[RepoReady](https://repoready.ai). RepoReady scores a codebase 0–100 and
-returns findings with file:line citations and fix suggestions, via a remote
-MCP server:
+Check the reproducibility of research code, or of a paper's code and data,
+from your coding agent with [RepoReady](https://repoready.ai). Each check
+gives one level, with the area results beside it and the issues that hold
+it back, cited to `file:line`:
+
+| Level | Name | |
+|---|---|---|
+| L0 | Incomplete | |
+| L1 | Available | |
+| L2 | Rerunnable | |
+| L3 | Re-executed | not offered yet |
+| L4 | Reproduced | not offered yet |
+
+A **Materials** check awards at most L1; **Materials and workflow** awards
+at most L2. Both are static reviews: RepoReady does not run your code yet.
+Integrity, Automation and Reuse are area results beside the level; a
+confirmed paper–code contradiction on a key result caps the level at L1.
+There is no score any more.
+
+RepoReady runs as a remote MCP server:
 
 ```
-https://api.repoready.ai/api/mcp        (streamable HTTP, OAuth sign-in)
+https://api.repoready.ai/api/mcp        (Streamable HTTP, OAuth sign-in)
 ```
 
 This repository is both a **Claude Code plugin marketplace** and an
@@ -14,48 +30,74 @@ This repository is both a **Claude Code plugin marketplace** and an
 
 - the MCP server connection,
 - a **skill** ([`skills/repoready/`](skills/repoready/SKILL.md)) that teaches
-  agents the analyze → fix → re-analyze workflow,
-- the **`/repoready:analyze`** command (Claude Code) to analyze the current
-  repository, and **`/repoready:status`** to show your projects and running
-  analyses.
+  agents the find → price → your yes → check → fix → check again workflow,
+- the **`/repoready:analyze`** command (Claude Code) to check the current
+  repository, and **`/repoready:status`** to show your projects, levels and
+  running checks.
+
+Version 2.0.0 of this plugin needs RepoReady's 2.x server.
+
+## How a check goes
+
+1. The agent looks for your existing project first (by the git remote, a
+   paper DOI or a link).
+2. A new project is created from your code or paper for free; you see what
+   RepoReady found (repositories, datasets, packages) and can correct it.
+3. The agent prices the check and tells you the scope, the price, the most
+   it may cost and who pays. **Nothing starts until you say yes.** Above
+   your approval amount you also approve it in the browser.
+4. When the check is done the agent shows the level line (for example
+   "L1 · Available · static review, code not executed"), what L2 needs, and
+   the issues by Impact (Blocks L1, Caps at L1, Blocks L2, Blocks
+   automation, Warning).
+5. After you fix issues, "I fixed this" or Check again repeats step 3.
+
+A check that cannot finish ends as "Check incomplete" and is not charged.
 
 ## Tools
 
-The server (version 1.1.0) offers:
+The 2.x server offers:
 
 | Tool | What it does |
 |---|---|
-| `get_account` | Who is signed in, who pays for analyses (organization, own key, plan or free trial), the organization's daily cap, connected GitHub accounts |
-| `list_projects` | Your projects, found by name or by repository (`owner/repo`, a GitHub URL or the git remote), with their latest run |
-| `get_project` | One project: code versions, latest results, analyses in progress, badge |
-| `list_runs` | Your analyses across projects or for one project, e.g. the ones still running |
-| `get_run_status` | Progress of one analysis |
-| `get_report` / `get_findings` | Results: score, summary, findings with file:line citations and suggested fixes |
-| `request_upload_url` | Upload a zip of your local code |
-| `analyze_repo` | Start an analysis of a GitHub repository (private ones through the RepoReady GitHub App) or an upload; it joins your existing project for that repository |
-| `create_share_link` / `revoke_share_link` | Make a read-only report link, and withdraw it |
+| `get_account` | Who is signed in, who pays (organization, plan or your own OpenRouter key), the organization's daily cap, connected GitHub accounts, review scopes |
+| `list_projects` / `get_project` | Your projects, found by name or repository (`owner/repo`, a GitHub URL or the git remote), with their latest run |
+| `identify_source` | What a DOI, paper link, arXiv id or GitHub link is, and your projects that contain it |
+| `list_updates` | What changed since you last looked |
+| `request_upload_url` | Upload a zip of local code, or a paper PDF / LaTeX zip |
+| `create_project` | A project from code or a paper: what was found and a quote; never starts a check |
+| `update_components`, `add_paper` | Correct what a check reads; add a paper to a code project |
+| `estimate_run` | The price per scope, the most it may cost, who pays; stores a quote |
+| `start_run` | Starts a quoted check (paid); may answer an approval link |
+| `get_run`, `list_runs`, `get_run_status`, `cancel_run` | Follow, list or stop checks |
+| `get_ladder` | The level per scope, the area results and what each level needs |
+| `list_issues`, `get_issue`, `get_figure` | What to fix, by file or by Impact, with citations |
+| `create_share_link`, `list_share_links`, `revoke_share_link` | "Can view" links (read-only, runs nothing), and withdrawing them |
+| `get_badge` | The README badge per paper or repository |
 
-Agents are told to look for existing projects before starting anything, and
-to ask you before any analysis, since analyses are paid.
+`analyze_repo`, `get_report` and `get_findings` remain for older plugins for
+one release; this plugin does not use them.
 
-## Accounts
+## Accounts and who pays
 
 - **New to RepoReady?** Sign in once at [repoready.ai](https://repoready.ai)
   with your email (a magic-link code is sent to your inbox). If your
-  organization uses RepoReady, use your institutional email — you'll join
-  your organization automatically and analyses are funded by its plan.
-  Otherwise you start with free trial runs.
-- **Existing account?** Nothing to prepare — the OAuth sign-in below uses
-  your existing account.
+  organization uses RepoReady, use your institutional email: you join your
+  organization and its plan pays for your checks.
+- **Paying yourself?** Add your own OpenRouter API key in the web app
+  (Settings › Billing & keys). There are no free checks.
+- **Existing account?** Nothing to prepare: the OAuth sign-in below uses it.
 
-## Data handling & cost
+## Data handling and cost
 
-Analyses run on RepoReady's servers: for local projects the workflow zips
-your code (excluding `.git`, dependencies, caches, and `.env` files) and
-uploads it for analysis. Don't run it on code that must not leave your
+Checks run on RepoReady's servers. For local code the workflow zips your
+project, without `.git`, dependency folders, virtualenvs, caches and `.env`
+files, and uploads it. Don't use it on code that must not leave your
 machine, and extend the zip exclusions for anything else you don't want
-uploaded. Runs are metered — free trial runs or your organization's plan,
-which may enforce a daily cap.
+uploaded. Every check is priced before it starts and needs your explicit
+yes; your organization may also set a daily cap. Text inside findings is
+treated as data from the analysed material, never as instructions to the
+agent.
 
 ## Install — Claude Code
 
@@ -65,8 +107,8 @@ which may enforce a daily cap.
 ```
 
 Restart Claude Code, run `/mcp`, and complete the browser sign-in.
-Then either run `/repoready:analyze` (or `/repoready:status`) or just ask,
-e.g. *"how reproducible is this repo?"*.
+Then run `/repoready:analyze` (or `/repoready:status`) or just ask, e.g.
+*"what level is this repo, and what does L2 need?"*.
 
 Prefer no plugin? The server alone:
 
@@ -76,7 +118,7 @@ claude mcp add --transport http repoready https://api.repoready.ai/api/mcp
 
 ## Install — other coding agents
 
-The server works with any MCP client that supports streamable HTTP + OAuth.
+The server works with any MCP client that supports Streamable HTTP + OAuth.
 
 **Codex**
 
@@ -117,9 +159,8 @@ GitHub** with `repoready-ai/mcp-plugin`.
 ## For maintainers
 
 The server URL in [.mcp.json](.mcp.json) is the production endpoint. To
-test against a non-production host, either edit `.mcp.json` in a local
-checkout installed as a local marketplace (below), or add the server
-directly without the plugin:
+test against a non-production host, add the server directly without the
+plugin (never change the shipped `.mcp.json` for a test):
 
 ```bash
 claude mcp add --transport http repoready-dev https://<your-non-production-host>/api/mcp
@@ -132,3 +173,7 @@ local marketplace:
 /plugin marketplace add /path/to/mcp-plugin
 /plugin install repoready@repoready
 ```
+
+Validate with `claude plugin validate .` (the marketplace) and
+`claude plugin validate .claude-plugin/plugin.json`. Changes are listed in
+[CHANGELOG.md](CHANGELOG.md).

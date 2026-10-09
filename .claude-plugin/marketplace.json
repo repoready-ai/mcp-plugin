@@ -4,12 +4,15 @@
     "name": "RepoReady",
     "url": "https://repoready.ai"
   },
+  "metadata": {
+    "description": "The RepoReady plugin: reproducibility checks for research code from your coding agent."
+  },
   "plugins": [
     {
       "name": "repoready",
       "source": "./",
-      "description": "Analyze research code for reproducibility from your coding agent: run RepoReady analyses, read findings with file:line citations, fix them, and share reports.",
-      "version": "1.1.0"
+      "description": "Check research code for reproducibility from your coding agent: one level per check (L0 Incomplete, L1 Available, L2 Rerunnable), issues with file:line citations to fix, then check again. Every paid check is priced first and needs your yes.",
+      "version": "2.0.0"
     }
   ]
 }
