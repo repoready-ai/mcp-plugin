@@ -15,9 +15,11 @@ it back, cited to `file:line`:
 
 A **Materials** check awards at most L1; **Materials and workflow** awards
 at most L2. Both are static reviews: RepoReady does not run your code yet.
-Integrity, Automation and Reuse are area results beside the level; a
-confirmed paper–code contradiction on a key result caps the level at L1.
-There is no score any more.
+Integrity, Automation and Reuse (and Journal policy, when a journal is
+known) are area results beside the level; a confirmed paper–code
+contradiction on a key result caps the level at L1. Findings on
+supplementary figures, tables and data are Warnings and never block a
+level. There is no score any more.
 
 RepoReady runs as a remote MCP server:
 
@@ -43,14 +45,17 @@ Version 2.0.0 of this plugin needs RepoReady's 2.x server.
    paper DOI or a link).
 2. A new project is created from your code or paper for free; you see what
    RepoReady found (repositories, datasets, packages) and can correct it.
-3. The agent prices the check and tells you the scope, the price, the most
-   it may cost and who pays. **Nothing starts until you say yes.** Above
-   your approval amount you also approve it in the browser.
+3. The agent prices the check and tells you the scope, the expected cost
+   ("about $X") and who pays. **Nothing starts until you say yes.** Above
+   your approval amount (by default, every paid check) you also approve it
+   in the browser.
 4. When the check is done the agent shows the level line (for example
    "L1 · Available · static review, code not executed"), what L2 needs, and
-   the issues by Impact (Blocks L1, Caps at L1, Blocks L2, Blocks
-   automation, Warning).
-5. After you fix issues, "I fixed this" or Check again repeats step 3.
+   the issues by Impact (Blocks L1, Blocks L2, Caps at L1, Blocks L3,
+   Blocks Automation, Warning). Each check settles its uncertain findings
+   itself; what it could not decide is shown as Unresolved.
+5. After you fix issues, "I fixed this" (one issue) or Check again repeats
+   step 3.
 
 A check that cannot finish ends as "Check incomplete" and is not charged.
 
@@ -64,10 +69,12 @@ The 2.x server offers:
 | `list_projects` / `get_project` | Your projects, found by name or repository (`owner/repo`, a GitHub URL or the git remote), with their latest run |
 | `identify_source` | What a DOI, paper link, arXiv id or GitHub link is, and your projects that contain it |
 | `list_updates` | What changed since you last looked |
+| `get_update` | What a new check would read differently (a newer paper version, new commits); free |
+| `lookup_public_assessment` | Published assessments of a paper or repository (listed only while RepoReady's public registry is on) |
 | `request_upload_url` | Upload a zip of local code, or a paper PDF / LaTeX zip |
 | `create_project` | A project from code or a paper: what was found and a quote; never starts a check |
 | `update_components`, `add_paper` | Correct what a check reads; add a paper to a code project |
-| `estimate_run` | The price per scope, the most it may cost, who pays; stores a quote |
+| `estimate_run` | The expected cost per scope ("about $X"), who pays; stores a quote |
 | `start_run` | Starts a quoted check (paid); may answer an approval link |
 | `get_run`, `list_runs`, `get_run_status`, `cancel_run` | Follow, list or stop checks |
 | `get_ladder` | The level per scope, the area results and what each level needs |

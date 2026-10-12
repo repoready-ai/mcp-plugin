@@ -1,9 +1,32 @@
 # Changelog
 
-## 2.0.0 — unreleased (prepared 2026-10-10)
+## 2.0.0 — unreleased (prepared 2026-10-10, brought in line with the release server 2026-10-12)
 
 For RepoReady's 2.x server. Published together with the server's 2.0.0
 release; until then production serves the 1.x server, so keep 1.0.1 there.
+
+Brought in line on 2026-10-12 with the server of the R1 release
+(monorepo `staging` `d1e02bcd`, `docs/MCP_SERVER.md` 2.0.0):
+
+- **No "Confirm this".** The `confirm` intent and `confirmFirst` are gone
+  from the skill: every check confirms its uncertain findings itself
+  (`get_run` shows `confirming`), the server refuses `confirm` with
+  `intent_retired`, and the only follow-up on one finding is "I fixed this"
+  (it checks the project again first, then that issue).
+- **The expected cost only.** The agent tells the user "about $X"
+  (`expectedUsd`, as the server's `next` / `note` texts word it), never the
+  ceiling; `ceilingUsd`, `chargeUsd` and `holdUsd` stay machine fields.
+- **Today's words.** Impact as the server returns it (Blocks L1, Blocks L2,
+  Caps at L1, Blocks L3, Blocks Automation, Warning) and in that order;
+  findings on supplementary results are Warnings, never blockers; finding
+  states Missing, Warning, Unresolved, Available, Not applicable (an issue
+  with `notDecided` is Unresolved); levels are no preview.
+- **New server fields and tools described:** `get_update` (what a new check
+  would read), `lookup_public_assessment` only while the public registry is
+  on, `targetJournal` and the Journal policy area, `checkVersion` choices,
+  `rootCauses`, the agents' policy refusals, badges issued in the web app
+  only, `payer.free` (a journal's sponsorship), share links sent by email
+  only on the user's request.
 
 - **Levels instead of a score.** Each check gives one level: L0 Incomplete,
   L1 Available, L2 Rerunnable (L3 Re-executed and L4 Reproduced are not
@@ -11,7 +34,7 @@ release; until then production serves the 1.x server, so keep 1.0.1 there.
   it. The 0–100 score, categories and tiers are gone from the skill, the
   commands and the README.
 - **The 2.x flow.** `list_projects` / `identify_source` → `create_project`
-  or `estimate_run` → the user's explicit yes, with the price and who pays →
+  or `estimate_run` → the user's explicit yes, with the expected cost and who pays →
   `start_run` (and the browser approval link when it answers
   `awaiting_approval`) → `get_run` → `get_ladder` → `list_issues` /
   `get_issue` → "I fixed this" or Check again through `estimate_run`.
@@ -19,9 +42,9 @@ release; until then production serves the 1.x server, so keep 1.0.1 there.
   which the server keeps for older plugins for one release.
 - **Review scopes.** Materials (at most L1) and Materials and workflow (at
   most L2, static); "Continue to L2" after a Materials check.
-- **Issues by Impact.** Blocks L1, Caps at L1 (a confirmed paper–code
-  contradiction on a key result), Blocks L2, Blocks automation, Warning;
-  "what L2 needs" in text for people; "Confirm this" for a lead.
+- **Issues by Impact.** Blocks L1, Blocks L2, Caps at L1 (a confirmed
+  paper–code contradiction on a key result), Blocks L3, Blocks Automation,
+  Warning; "what L2 needs" in text for people.
 - **Who pays.** A journal's sponsorship, an organization or individual plan,
   or the user's own OpenRouter key; no free trial. "Check incomplete, not
   charged" explained, including what an own key cannot get back.
