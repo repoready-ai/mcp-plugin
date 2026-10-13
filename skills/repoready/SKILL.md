@@ -26,9 +26,14 @@ your own level line.
 
 - A level line reads like "L1 · Available · static review, code not executed"
   (`headline`). Never write a level as a fraction ("of 3"), a percentage or a score.
-- Review scopes: **Materials** awards at most L1; **Materials and workflow**
-  awards at most L2 (a static review: the code is not executed).
-  Reproduction (L3, L4) is not available yet.
+- Review scopes, as the user hears them: an **L1 check** (are the code,
+  data and software behind each result shared?) awards at most L1; an
+  **L2 check** (the full review without running the code: workflow,
+  integrity, automation, reuse) awards at most L2. Their `scope` ids stay
+  `materials` and `workflow`; some tool texts still say "Materials" and
+  "Materials and workflow" for them: say "L1 check" and "L2 check".
+  "Materials" is only the name of an area (what L1 needs). Reproduction
+  (L3, L4) is not available yet.
 - Area results sit beside the level, never on the ladder: Integrity,
   Automation, Reuse ("Automation complete", "Automation not assessed"),
   and Journal policy when a journal is known.
@@ -41,8 +46,8 @@ your own level line.
 - The state of a finding or a result, in the web app's words: **Missing**
   (decided, not met), **Warning** (decided, blocks nothing), **Unresolved**
   (the check could not decide it within its run: an issue with status
-  `lead` / `notDecided: true`; the tools' markdown says "not decided in this
-  check"), **Available** (everything the check asks of it is there), **Not
+  `lead` / `notDecided: true`; the tools' markdown says "Unresolved"),
+  **Available** (everything the check asks of it is there), **Not
   applicable** (not a result: a schematic, photo or study design). Never
   say "gap", "lead" or "Not decided yet" to the user.
 - What a level still needs: say "what L1 needs" / "what L2 needs". The tools
@@ -53,6 +58,10 @@ your own level line.
   reruns once by itself. Ask the user before any second rerun. On the
   user's own OpenRouter key, say also that the provider's tokens for the
   failed attempt cannot be refunded (RepoReady charges no fee for it).
+  One exception: a check that stops because the payer's key ran out of
+  credit is charged what it spent and does not rerun; it keeps every
+  answer it got, so once the key is topped up, Check again on the same
+  payer continues it without paying for those answers again.
 - "No level" is for a paper without computational analysis; "Level not yet
   established" is the tools' word while a check's Materials evidence is
   unsettled. Repeat them as given; neither is L0.
@@ -164,7 +173,9 @@ for the first check. It never starts a check.
   its policy rules are evaluated as the Journal policy area beside the level
   (never part of it; a published paper is checked against its own journal).
 - Show the user what was found (`discovered`: repositories, datasets,
-  packages, roles, versions), especially when `needsReview` is true. Their
+  packages, roles, versions), especially when `needsReview` is true. A
+  material can hold code, data or both (`contents`) and have several roles
+  (`roles`, the primary first). Their
   corrections go through `update_components` (also which version of the
   authors' repositories a check reads: `checkVersion` latest, cited, or
   `{type: branch | tag | commit, value}`); `add_paper` adds a paper to a
@@ -195,8 +206,8 @@ to no commit. Prefer a pushed commit when there is one.
    - the first check of a new project: `intent: 'screen'`;
    - a project that has a check: `intent: 'check_again'` (new code:
      `source.ref` = a pushed commit, preferred, or `source.uploadKey`);
-     after a Materials check, `continue_to_workflow: true` prices
-     "Continue to L2" (Materials and workflow on the same inputs, cheaper
+     after an L1 check, `continue_to_workflow: true` prices
+     "Continue to L2" (an L2 check on the same inputs, cheaper
      than a new check);
    - after the user fixed one issue and pushed or uploaded the fix:
      `intent: 'i_fixed_this'`, `target.issueId` ("I fixed this — check it").
@@ -208,7 +219,7 @@ to no commit. Prefer a pushed commit when there is one.
    "Confirm this": every check confirms its uncertain findings itself, and
    any other intent (`confirm` among them) is refused with `intent_retired`.
 2. Tell the user, in one short message, for each option in `options`: the
-   scope (Materials: at most L1; Materials and workflow: at most L2), the
+   scope (L1 check: at most L1; L2 check: at most L2), the
    expected cost, "about $X" (`expectedUsd`; when it is null, `priceUsd`;
    the `next` text words the default option's), and who pays
    (`payer.label`; when `payer.free` is true, say it costs the user
@@ -247,7 +258,8 @@ Poll `get_run({runId})` after `pollAfterSeconds` each time (a check takes
 several minutes; `confirming: true` means it is settling its uncertain
 findings, its last step). Do not start another check meanwhile. A session
 that lost the `runId` finds it with `list_runs({status: 'active'})`. `cancel_run` stops
-a check only when the user asks (what it spent is not refunded).
+a check only when the user asks: it is charged what it spent until it
+stopped, and the project keeps its last finished check.
 
 When it finishes, `get_run` gives the level line before → after per scope,
 the issues new / seen again / resolved, and what it cost (`costUsd`).
@@ -267,7 +279,10 @@ once by itself (see the words above).
   file with the fix and `path:line@sha7` citations; `view: 'checklist'`
   groups by Impact with the request an editor would send. Filters:
   `componentId`, `pathPrefix`, `figure`, `status`, `gate`, `q`.
-  `format: 'markdown'` gives the whole list in one piece.
+  `format: 'markdown'` gives the whole list in one piece. After a
+  L1 check the list may leave out the Workflow and Automation
+  findings (`outsideScope`, `scopeNote`): say they are not assessed in that
+  scope and offer "Continue to L2" (step 3).
 - `get_issue({issueId})` for one issue in full; `get_figure` for a figure of
   a paper (its code, inputs, open issues and the workflow behind each
   result).

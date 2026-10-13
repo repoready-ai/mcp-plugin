@@ -21,6 +21,7 @@ At migration, local main and cached origin/main = `ed84863` (v1.0.1). Local `fea
 | 2026-10-02 | Codex local | feat/mcp-v1.1 @ 56fd16f | Shared context, agent guidance, Claude settings | Local documentation/setup change; no manifest, runtime endpoint, version, server, publishing or paid analysis changed. |
 | 2026-10-10 | Claude local (monorepo Track C, C.2) | claude/plugin-v2 from feat/mcp-v1.1 @ 752a28d, worktree `../repoready-mcp-plugin-v2` | Plugin 2.0.0: skill, commands, README, manifests, CHANGELOG | Built and committed locally; not pushed, not published. Next: owner's pushes at R1 (see the hand-off below). |
 | 2026-10-12 | Claude local (build agent of the lead session, C.2) | claude/plugin-v2 @ b0ccc0b | Skill, analyze command, README, CHANGELOG brought in line with the R1 server (no confirm intent, expected cost only, today's words) | Committed locally; not pushed, not published. See "Plugin 2.0.0 brought in line with the R1 server" below. |
+| 2026-10-13 | Claude local (Track C agent of the monorepo lead session) | claude/plugin-v2-1013 from claude/plugin-v2 @ 26bdfa5, worktree `../repoready-mcp-plugin-track-c` | Skill, commands, README, CHANGELOG, decisions memory: tonight's server and the scope labels L1 check / L2 check | Committed locally; not pushed, not published. See "Plugin 2.0.0 on the server of 2026-10-13" below. |
 
 Read the monorepo's DEVELOPMENT_CONTEXT.md and docs/MCP_SERVER.md at the matching pushed branch when changing tools. If the cloud task only has this repo, request the relevant server contract or inspect it using authorized repository access. Record ownership and contract changes here before overlapping Claude's work.
 
@@ -81,3 +82,20 @@ Checks run: `python3 -m json.tool` on both manifests, `.mcp.json`, `.claude/sett
 Notes for the server lane (not plugin blockers): `docs/MCP_SERVER.md` says "26 tools in all", but `d1e02bcd` registers 27 (the 26 plus `get_update`; `lookup_public_assessment` is a 28th while the registry is on). The `list_issues` markdown still words a lead "(not decided in this check)" where the web says "Unresolved"; `priceText` reads "up to $Y" for a quote stored before `expectedUsd` without a price; `cancel_run` can still say "The free-trial check is given back".
 
 Next step (unchanged): publish at R1 as in the 2026-10-10 hand-off's steps 2-3, after production serves MCP 2.0.0 from this release head. Re-read the tool list against production once it is live.
+
+## Plugin 2.0.0 on the server of 2026-10-13
+
+Owner of this change: Claude (Track C agent of the monorepo lead session). Branch `claude/plugin-v2-1013`, created from `claude/plugin-v2` @ `26bdfa5` in the worktree `../repoready-mcp-plugin-track-c` (no existing checkout was switched). Nothing pushed, merged, tagged or published; `.mcp.json` and the version (2.0.0) unchanged; no paid check, no live MCP call.
+
+Server contract read (read-only): monorepo `claude/integration-1013` @ `8583813a` (`apps/api/src/modules/mcp/`: 28 tools registered, 27 while the registry is off; the diff since `d1e02bcd`), its `docs/memory` (`funds-graceful`, `expected-cost-holds`), decision-log rows 116-145, and the uncommitted work of `claude/b6-b7` (`list_issues` `reviewScope` / `outsideScope` / `scopeNote` after a Materials check).
+
+What changed:
+- **Scope labels** (owner 2026-10-13): the user hears "L1 check" (are the code, data and software behind each result shared?) and "L2 check" (the full review without running the code: workflow, integrity, automation, reuse); `scope` ids `materials` / `workflow` unchanged; "Materials" stays the area name; where a tool text still says "Materials and workflow" the agent says "L2 check" (decision 13).
+- **"Unresolved"** in the tools' issue markdown (was "not decided in this check").
+- **Materials hold code, data or both and can have several roles** (`contents`, `roles`) where the user reviews what was found.
+- **Check incomplete from a dry payer key**: charged what it spent, no rerun, its answers kept; Check again on the same payer continues it without paying for them again. **Cancel**: charged what it spent until it stopped; the project keeps its last finished check.
+- **After an L1 check** `list_issues` may leave out Workflow and Automation findings (`outsideScope`, `scopeNote`; on `claude/b6-b7`, not yet merged): the skill offers "Continue to L2".
+
+Checks run: `python3 -m json.tool` on both manifests, `.mcp.json`, `.claude/settings.json`; `claude plugin validate .` (passed), `claude plugin validate .claude-plugin/plugin.json` (passed with the expected root-`CLAUDE.md` warning), `claude plugin validate skills` and `commands` (passed); the Helmholtz `scripts/lint_skills.py skills` (1/1 passed); `claude --plugin-dir . plugin details repoready` (2.0.0; skill about 4.4k tokens on invoke, 146 always on); every backticked snake_case name in README, skill and commands exists in the server code at `8583813a`, and all 28 registered tools are in the README table; local Markdown links; `git diff --check`; C.2's Done-when grep finds nothing.
+
+Next step: R1 is out (2026-10-13), so production should serve MCP 2.0.0: re-read production's `tools/list` once, then the owner pushes `feat/mcp-v1.1`, `claude/plugin-v2` and this branch (or merges this branch into `main`), pushes `main` and tags `v2.0.0`. Then the Helmholtz pull request (monorepo C.3; the entry text is committed on Helmholtz branch `claude/repoready-plugin-v2`).

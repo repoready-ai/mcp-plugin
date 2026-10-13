@@ -13,8 +13,10 @@ it back, cited to `file:line`:
 | L3 | Re-executed | not offered yet |
 | L4 | Reproduced | not offered yet |
 
-A **Materials** check awards at most L1; **Materials and workflow** awards
-at most L2. Both are static reviews: RepoReady does not run your code yet.
+An **L1 check** (are the code, data and software behind each result
+shared?) awards at most L1; an **L2 check** (the full review without
+running the code: workflow, integrity, automation, reuse) awards at most
+L2. RepoReady does not run your code yet.
 Integrity, Automation and Reuse (and Journal policy, when a journal is
 known) are area results beside the level; a confirmed paper–code
 contradiction on a key result caps the level at L1. Findings on
@@ -58,6 +60,9 @@ Version 2.0.0 of this plugin needs RepoReady's 2.x server.
    step 3.
 
 A check that cannot finish ends as "Check incomplete" and is not charged.
+If it stops because the paying key ran out of credit, it is charged what
+it spent and keeps its answers: Check again continues it. A check you
+cancel is charged what it spent until it stopped.
 
 ## Tools
 

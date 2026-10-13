@@ -5,6 +5,30 @@
 For RepoReady's 2.x server. Published together with the server's 2.0.0
 release; until then production serves the 1.x server, so keep 1.0.1 there.
 
+Brought in line on 2026-10-13 with the server on monorepo
+`claude/integration-1013` (`8583813a`, 28 tools with the registry lookup,
+27 without):
+
+- **Issue lists say "Unresolved"** for an issue the check could not decide
+  (the server's markdown no longer says "not decided in this check").
+- **Materials hold code, data or both and can have several roles**
+  (`contents`, `roles` in `create_project`'s and `update_components`'
+  rows); the skill names them where the user reviews what was found.
+- **Check incomplete when the payer's key runs dry**: charged what it
+  spent, no automatic rerun, its answers kept; Check again on the same
+  payer continues it without paying for them again. The plain "Check
+  incomplete, not charged" stays for the check's own doubt.
+- **Scope labels** (owner 2026-10-13): "L1 check" and "L2 check" for the
+  user, in place of "Materials" and "Materials and workflow"; the `scope`
+  ids `materials` / `workflow` are unchanged; "Materials" stays the area
+  name.
+- **Cancel**: a cancelled check is charged what it spent until it stopped,
+  and the project keeps its last finished check.
+- **After a Materials check**, `list_issues` may leave out the Workflow and
+  Automation findings (`outsideScope`, `scopeNote`, being added on the
+  server's `claude/b6-b7`): the skill says they are not assessed in that
+  scope and offers "Continue to L2".
+
 Brought in line on 2026-10-12 with the server of the R1 release
 (monorepo `staging` `d1e02bcd`, `docs/MCP_SERVER.md` 2.0.0):
 

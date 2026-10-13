@@ -19,8 +19,8 @@ DOI or a paper link (use `identify_source` for it).
    machine) or use the pushed GitHub repository, then `create_project`. Show
    what it found. An existing project: `estimate_run` with intent
    `check_again` (with `source.ref` or `source.uploadKey` for new code).
-3. Price it (`estimate_run`) and tell the user, per scope (Materials: at most
-   L1; Materials and workflow: at most L2), the expected cost ("about $X",
+3. Price it (`estimate_run`) and tell the user, per scope (L1 check: at most
+   L1; L2 check: at most L2), the expected cost ("about $X",
    `expectedUsd`; never the ceiling) and who pays. **Start nothing until
    the user says yes.** Then
    `start_run`; if it answers `awaiting_approval`, give the user the
