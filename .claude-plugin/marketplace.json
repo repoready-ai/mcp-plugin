@@ -12,7 +12,7 @@
       "name": "repoready",
       "source": "./",
       "description": "Check research code for reproducibility from your coding agent: one level per check (L0 Incomplete, L1 Available, L2 Rerunnable), issues with file:line citations to fix, then check again. Every paid check is priced first and needs your yes.",
-      "version": "2.0.0"
+      "version": "2.0.1"
     }
   ]
 }

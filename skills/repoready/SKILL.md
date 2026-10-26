@@ -107,9 +107,12 @@ The tools come from the RepoReady MCP server at
   negotiated automatically.
 
 This workflow needs the 2.x server (2.0.0): `estimate_run`, `start_run`,
-`get_run`, `get_ladder` and `list_issues`. If the connected server lacks them, say that
-this plugin version needs RepoReady's 2.x server and stop; do not fall back
-to a score-based workflow.
+`get_run`, `get_ladder`, `list_todos` and `list_issues`. If the connected server lacks
+all of them, say that this plugin version needs RepoReady's 2.x server and
+stop; do not fall back to a score-based workflow. If only `list_todos` is
+missing (a server from before it), read what to do with `list_issues` as in
+step 5 and say that the to-do plan needs a newer RepoReady server; never
+use `get_findings` or `get_report` instead.
 
 ## Sign-in and who pays
 
@@ -140,7 +143,7 @@ who set it and where to change it: tell the user; do not work around it.
 3. If a project exists: `get_project` and `list_runs({status: 'active'})`.
    Never start a check while one is running on that project; follow it with
    `get_run`. Read the latest finished check with `get_ladder` and
-   `list_issues` before offering a new one.
+   `list_todos` before offering a new one.
 4. `list_updates` shows what changed since the user last looked (finished
    checks, approvals waiting). `get_update({projectId})` (free) says what a
    new check would read differently: a newer paper version, and per
@@ -270,7 +273,7 @@ the user agreed to check without that code. Never set either on your own.
 
 `analyze_repo`, `get_report` and `get_findings` are kept for older plugins
 for one release. Do not use them: `analyze_repo` can start a paid check in
-one call. Use the flow above.
+one call, and the to-dos are in `list_todos`. Use the flow above.
 
 ## 4. While it runs
 
@@ -295,6 +298,9 @@ rerun once by itself (see the words above).
   known), and what each level still needs with the open items.
   `targetLevel: 2` lists what L2 needs. Report the headline as given, the
   areas beside it, and what the next level needs in a few bullets.
+- `list_todos({projectId})`: **the to-dos**, the same action plan the web
+  app's To-dos view shows. Use it for "what do I have to do" and to work
+  through the fixes. See "The to-do plan" below.
 - `list_issues({projectId})`: `view: 'fix_list'` groups by repository and
   file with the fix and `path:line@sha7` citations; `view: 'checklist'`
   groups by Impact with the request an editor would send. Filters:
@@ -307,7 +313,44 @@ rerun once by itself (see the words above).
   a paper (its code, inputs, open issues and the workflow behind each
   result).
 
-Order the work as the checklist does: Blocks L1, Blocks L2, Caps at L1,
+### The to-do plan (`list_todos`)
+
+- Goals in order: **To reach L1**, **To reach L2**, then **Optional ·
+  beside the level** (Automation, Warnings, Journal policy, Reuse, Good
+  practice & access, then Other findings; none of these changes the
+  level). Each goal has its progress (`goals[].done` of `total`).
+- One block per finding: its `title`, why it matters (`why`), its Impact
+  `tag` and `state` (open, partly fixed, fixed). Its steps are numbered
+  1, 2, 3 within it; do them in that order.
+- A step with `alternatives` is **one** step: show its goal, then "Either
+  …" / "or …" for each option; any one option completes it. Never number
+  the options as separate steps.
+- `done: true` steps are fixed already: tick them, or leave them out when
+  the user wants only what is left (`status: 'open'`).
+- Who can do a step (`whoText`): **"AI can fix this"** (you can make the
+  change from the repository alone), **"AI can help · needs your answer"**
+  (ask the user the question `get_issue` gives for one of its `issueIds`
+  before you change anything), or **"Authors"** (the user has to do it:
+  share a file, deposit data, state a fact only they know). Repeat these
+  labels as given.
+- `next` is the first open step ("Next up"). `counts.toDo` steps are left.
+- Present it as a checklist: the goal headings, each finding's title with
+  its why in one line, its numbered steps with "- [ ]" / "- [x]", the
+  options under their step, and who can do each. `format: 'markdown'`
+  returns exactly that, ready to show; it may be long: for a quick answer
+  show the first goal's open steps and say how many are left.
+- The user asks for **only what to do**: `status: 'open'` (and `goal:
+  'level'` for only what changes the level, or `goal: 'l1'` / `'l2'` /
+  `'beside'`). Show the steps, not the findings' explanations.
+- `summary` is the check's summary of the findings, when it has one: show
+  it before the plan, as given.
+- Steps of Other findings have no `issueIds` and no "I fixed this": they
+  were found beside the standard checks and never change the level.
+- Long plans are paged by finding: pass `nextCursor` back as `cursor` with
+  the same other arguments.
+
+Without `list_todos` (an older server), order the work from `list_issues`
+as the checklist does: Blocks L1, Blocks L2, Caps at L1,
 Blocks L3, Blocks Automation; Warnings last. An issue with `rootCauses`
 shares one cause with other issues: fix the owner's issue once. An
 Unresolved issue (`notDecided: true`) could not be decided in this check:
@@ -317,11 +360,16 @@ false / null: ignore them.
 
 ## 6. Improve, then check again
 
-1. Ask before editing the user's code. Open the cited files and fix the
-   issues yourself; a confirmed issue with `fixClass` 1 is a good Fix with
-   AI candidate, 2 needs the user's answer to `fixQuestion` first.
+1. Ask before editing the user's code. Work through the to-do plan step by
+   step (`list_todos`, `status: 'open'`): open the step's issues with
+   `get_issue` (its `issueIds`) for the cited files and the fix, and fix
+   them yourself. "AI can fix this" steps (a confirmed issue with
+   `fixClass` 1) are good candidates; "AI can help · needs your answer"
+   (`fixClass` 2) needs the user's answer to `fixQuestion` first; "Authors"
+   steps are the user's: say what they need to do.
 2. Let the user commit and push (or upload the working tree).
-3. Back to step 3: "I fixed this" for one issue, or Check again after a
+3. Back to step 3: "I fixed this" for one issue (`target.issueId`: one of
+   the fixed step's `issueIds`), or Check again after a
    batch of fixes. Prefer one check after a batch over one per fix. Same
    rule: price, payer, the user's yes.
 

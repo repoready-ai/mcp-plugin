@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.1 — requires the RepoReady server with `list_todos` (next release)
+
+- **The to-dos.** The agent now shows the same to-do plan as the web app's
+  To-dos view, read with the server's new `list_todos` tool: what to do to
+  reach L1, to reach L2, then what is optional beside the level (including
+  Other findings, which never change the level); each finding's steps in
+  order, a step with alternatives as one step ("Either … or …"), steps
+  already fixed ticked, and who can do each step: "AI can fix this", "AI
+  can help · needs your answer" or "Authors". The check's summary comes
+  first when it has one.
+- **Only what to do.** Ask for "only what to do" (or only what changes the
+  level) and the agent lists just the open steps.
+- `/repoready:status` shows the current repository's to-dos in one line and
+  offers the whole plan; `/repoready:analyze` ends with the to-dos instead
+  of a fix list.
+- With a server from before `list_todos`, the agent falls back to the issue
+  list (`list_issues`) and says the to-do plan needs a newer server.
+  `get_findings` and `get_report` stay unused.
+- Unchanged: nothing paid starts without the expected cost ("about $X"),
+  who pays and your explicit yes.
+
 ## 2.0.0 — 2026-10-26
 
 For RepoReady's 2.x server (MCP server 2.0.0). Earlier plugin versions

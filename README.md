@@ -42,7 +42,9 @@ This repository is both a **Claude Code plugin marketplace** and an
   repository, and **`/repoready:status`** to show your projects, levels and
   running checks.
 
-Version 2.0.0 of this plugin needs RepoReady's 2.x server.
+Version 2.0.1 of this plugin needs RepoReady's 2.x server; its to-do plan
+needs a server with `list_todos` (with an older server it falls back to the
+issue list).
 
 ## How a check goes
 
@@ -58,7 +60,12 @@ Version 2.0.0 of this plugin needs RepoReady's 2.x server.
    in the browser.
 4. When the check is done the agent shows the level line (for example
    "L1 · Available · static review, code not executed"), what L2 needs, and
-   the issues by Impact (Blocks L1, Blocks L2, Caps at L1, Blocks L3,
+   the to-dos: the same plan as the web app's To-dos view (to reach L1, to
+   reach L2, then what is optional beside the level), each finding's steps
+   in order, steps with alternatives ("Either … or …"), and who can do
+   each ("AI can fix this", "AI can help · needs your answer", "Authors").
+   Ask for "only what to do" to see just the open steps. The issues are
+   also listed by Impact (Blocks L1, Blocks L2, Caps at L1, Blocks L3,
    Blocks Automation, Warning). Each check settles its uncertain findings
    itself; what it could not decide is shown as Unresolved.
 5. After you fix issues, "I fixed this" (one issue) or Check again repeats
@@ -89,6 +96,7 @@ The 2.x server offers:
 | `start_run` | Starts a quoted check (paid); may answer an approval link |
 | `get_run`, `list_runs`, `get_run_status`, `cancel_run` | Follow, list or stop checks |
 | `get_ladder` | The level per scope, the area results and what each level needs |
+| `list_todos` | The to-dos: the action plan per finding, steps in order with alternatives and who can do each (the web app's To-dos) |
 | `list_issues`, `get_issue`, `get_figure` | What to fix, by file or by Impact, with citations |
 | `create_share_link`, `list_share_links`, `revoke_share_link` | "Can view" links (read-only, runs nothing), and withdrawing them |
 | `get_badge` | The README badge per paper or repository |

@@ -15,13 +15,18 @@ share nothing.
 4. `list_projects` → the most recently active projects with their latest
    run. If the current directory is a git repository, also call it with
    `repo` = `git remote get-url origin`, put that project first and read its
-   level with `get_ladder` (the `headline` per scope). $ARGUMENTS may name a
-   project, repository or paper to look up instead.
+   level with `get_ladder` (the `headline` per scope) and its to-dos with
+   `list_todos({projectId, status: 'open'})` (`counts`, `next`). $ARGUMENTS
+   may name a project, repository or paper to look up instead; when it asks
+   for the to-dos ("todos", "what to do"), show that project's plan as the
+   repoready skill's "The to-do plan" says.
 
 Present a short summary: account and payer; anything waiting for the user
 (an approval link, a finished check); running checks (project, phase,
 percent, link); then the recent projects (name, latest run and its status,
 date, link) and, for the current repository, its level line as the tool
-gives it ("L1 · Available · …"). Never show a score or a level as a fraction.
-Offer `list_issues` for a project the user wants to work on; ask before any
-new (paid) check.
+gives it ("L1 · Available · …") and its to-dos in one line ("6 steps to do ·
+2 of 8 done; next: …", from `list_todos`). Never show a score or a level as
+a fraction. Offer the whole to-do plan (`list_todos`, `format: 'markdown'`;
+only what is left: `status: 'open'`) for a project the user wants to work
+on; ask before any new (paid) check.

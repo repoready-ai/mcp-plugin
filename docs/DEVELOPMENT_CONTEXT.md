@@ -1,6 +1,6 @@
 # RepoReady MCP plugin development context
 
-Snapshot: 2026-10-26 (plugin 2.0.0 release candidate). Verify actual Git history and remote branches before work.
+Snapshot: 2026-10-26 (plugin 2.0.0 published; 2.0.1 with the to-dos prepared, not published). Verify actual Git history and remote branches before work.
 
 Repository: `repoready-ai/mcp-plugin`. This distributes the remote connection, workflow skill and Claude commands. The server implementation and its contracts live in RepoReady's monorepo (its plan, Track C, covers this plugin; see `docs/plans/README.md`).
 
@@ -23,6 +23,7 @@ This repository is public: keep local machine paths, non-production hosts, inter
 | 2026-10-12 | Claude local (C.2) | claude/plugin-v2 @ 26bdfa5 | Brought in line with the 2.0.0 server (no confirm intent, expected cost only, today's words) | Committed; not pushed. |
 | 2026-10-13 | Claude local (Track C) | claude/plugin-v2-1013 from claude/plugin-v2 @ 26bdfa5 | Scope labels L1 check / L2 check, Unresolved, contents and roles, the funds stop, cancel | Committed (b893372); not pushed. |
 | 2026-10-26 | Claude local (build agent of the monorepo lead session) | claude/plugin-v2-1013 @ b893372 | Release fixes: supplementary results opt-in, conditional rerun, public CHANGELOG, internal details scrubbed | Committed; not pushed. See the hand-off below. |
+| 2026-10-26 | Claude local (build agent of the monorepo lead session) | claude/plugin-v2.0.1-todos from main @ bbf26d9 (v2.0.0) | Plugin 2.0.1: the to-do plan through the server's `list_todos` | Committed; not pushed. Publish only after production serves `list_todos`. See the 2.0.1 hand-off below. |
 
 Read the monorepo's MCP server contract (`docs/MCP_SERVER.md`, `apps/api/src/modules/mcp/`) on its production branch when changing tools. If a cloud task only has this repository, request the relevant server contract. Record ownership and contract changes here before overlapping work.
 
@@ -58,3 +59,18 @@ What remains for the owner:
 4. Rebase the Helmholtz fork's 2.0.0 entry branch onto upstream `main`, push it to the fork and open the pull request to the Helmholtz marketplace.
 5. The website's MCP docs page still says "v1.0.1"; update it to 2.0.0.
 6. Optional, server side: agents see issues but not the to-dos with alternatives or Other findings unless `get_findings` / `get_report` may be used read-only (the skill forbids both).
+
+## Plugin 2.0.1, the to-dos — hand-off 2026-10-26
+
+Owner of this change: Claude (build agent of the monorepo lead session), on the owner's question whether the missing to-dos were fixed. Branch `claude/plugin-v2.0.1-todos`, from the published `main` (`bbf26d9`, v2.0.0). Nothing pushed, merged, tagged or published; `.mcp.json` unchanged; no live MCP call, no paid check.
+
+Server contract (monorepo, decision-log row 257; Track C): a new read-only tool `list_todos` (`projectId`; `status` open / all, default all; `goal` l1 / l2 / beside / level; `format` markdown; `limit` / `cursor`, paged by finding). It answers the web app's To-dos plan: `summary`, `counts` (total, done, toDo), `goals` (label, note, progress), `next`, and `blocks` (one per finding: `title`, `why`, `tag`, `state`, `goalLabel`, `groupLabel`, `issueIds`, `steps` with `n`, `text`, `alternatives`, `line`, `done`, `resolves`, `issueIds`, `findIds`, `who`, `whoText`). Allowed at "Read only". It is on the monorepo's staging line, not yet in production.
+
+What changed: `skills/repoready/SKILL.md` (requirements with the fallback to `list_issues`, step 1, step 5 with "The to-do plan", step 6 works through the steps, "I fixed this" with a step's issue id, `get_findings` / `get_report` still forbidden), `commands/status.md` (the current repository's to-dos in one line, the whole plan on request), `commands/analyze.md` (ends with the to-dos), `README.md` (how a check goes, the tool table, version line), both manifests 2.0.1, `CHANGELOG.md` (2.0.1 entry), `docs/memory/plugin-v2-decisions.md` (decision 15).
+
+Checks: `claude plugin validate` on `.`, `.claude-plugin/plugin.json`, `skills` and `commands`; the manifests, `.mcp.json` and `.claude/settings.json` parse; `git diff --check`; the Done-when grep; every backticked tool and field name exists in the server's `list_todos` output schema.
+
+What remains for the owner:
+1. Deploy the server change to production (the monorepo's release flow).
+2. Smoke test with this folder installed against production: `/mcp` sign-in, `list_todos` on a project with a check (free, read only), "only what to do".
+3. Fast-forward `main` to this branch, push `main`, tag `v2.0.1` and push the tag; then the Helmholtz entry's version line if it names one.

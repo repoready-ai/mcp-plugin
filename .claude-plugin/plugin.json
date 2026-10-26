@@ -1,7 +1,7 @@
 {
   "name": "repoready",
   "description": "RepoReady reproducibility checks for research code and papers: one level per check (L0 Incomplete, L1 Available, L2 Rerunnable), cited issues to fix, and no paid check without your yes. MCP server plus workflow guidance.",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "license": "MIT",
   "repository": "https://github.com/repoready-ai/mcp-plugin",
   "author": {
