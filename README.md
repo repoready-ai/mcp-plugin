@@ -19,9 +19,12 @@ running the code: workflow, integrity, automation, reuse) awards at most
 L2. RepoReady does not run your code yet.
 Integrity, Automation and Reuse (and Journal policy, when a journal is
 known) are area results beside the level; a confirmed paper–code
-contradiction on a key result caps the level at L1. Findings on
-supplementary figures, tables and data are Warnings and never block a
-level. There is no score any more.
+contradiction on a key result caps the level at L1. Supplementary
+figures, tables and data are not checked as results unless you ask for
+it (for an extra "about $Y" shown with the price); their files are always
+read as materials of the main-text results. When they are checked, their
+findings are Warnings and never block a level. There is no score any
+more.
 
 RepoReady runs as a remote MCP server:
 
@@ -48,7 +51,9 @@ Version 2.0.0 of this plugin needs RepoReady's 2.x server.
 2. A new project is created from your code or paper for free; you see what
    RepoReady found (repositories, datasets, packages) and can correct it.
 3. The agent prices the check and tells you the scope, the expected cost
-   ("about $X") and who pays. **Nothing starts until you say yes.** Above
+   ("about $X") and who pays, and what also checking the supplementary
+   results would add, if you want them. **Nothing starts until you say
+   yes.** Above
    your approval amount (by default, every paid check) you also approve it
    in the browser.
 4. When the check is done the agent shows the level line (for example
@@ -59,8 +64,9 @@ Version 2.0.0 of this plugin needs RepoReady's 2.x server.
 5. After you fix issues, "I fixed this" (one issue) or Check again repeats
    step 3.
 
-A check that cannot finish ends as "Check incomplete" and is not charged.
-If it stops because the paying key ran out of credit, it is charged what
+A check that cannot finish ends as "Check incomplete" and is not charged
+by RepoReady. It may rerun once by itself (if some of the authors' code
+could not be read, only once that code is new). If it stops because the paying key ran out of credit, it is charged what
 it spent and keeps its answers: Check again continues it. A check you
 cancel is charged what it spent until it stopped.
 
@@ -79,7 +85,7 @@ The 2.x server offers:
 | `request_upload_url` | Upload a zip of local code, or a paper PDF / LaTeX zip |
 | `create_project` | A project from code or a paper: what was found and a quote; never starts a check |
 | `update_components`, `add_paper` | Correct what a check reads; add a paper to a code project |
-| `estimate_run` | The expected cost per scope ("about $X"), who pays; stores a quote |
+| `estimate_run` | The expected cost per scope ("about $X"), who pays, what checking the supplementary results would add (`check_supporting_results` to include them); stores a quote |
 | `start_run` | Starts a quoted check (paid); may answer an approval link |
 | `get_run`, `list_runs`, `get_run_status`, `cancel_run` | Follow, list or stop checks |
 | `get_ladder` | The level per scope, the area results and what each level needs |

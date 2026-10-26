@@ -21,8 +21,13 @@ DOI or a paper link (use `identify_source` for it).
    `check_again` (with `source.ref` or `source.uploadKey` for new code).
 3. Price it (`estimate_run`) and tell the user, per scope (L1 check: at most
    L1; L2 check: at most L2), the expected cost ("about $X",
-   `expectedUsd`; never the ceiling) and who pays. **Start nothing until
-   the user says yes.** Then
+   `expectedUsd`; never the ceiling) and who pays. Supplementary results
+   are not checked by default (their files are still read as materials of
+   the main-text results); each option's `supportingExtraUsd` is what
+   checking them would add ("+ about $Y"). Only if the user asks for them,
+   estimate again with `check_supporting_results: true` and quote that
+   price, which includes them. **Start nothing until the user says yes.**
+   Then
    `start_run`; if it answers `awaiting_approval`, give the user the
    `approvalUrl` and call `start_run` again with the same `quoteId` after
    they approved.
@@ -32,8 +37,8 @@ DOI or a paper link (use `identify_source` for it).
    2. what the next level needs ("what L2 needs"), in a few bullets;
    3. a short fix list from `list_issues`, ordered by Impact as the tools
       word it (Blocks L1, Blocks L2, Caps at L1, Blocks L3, Blocks
-      Automation, then Warnings; findings on supplementary results are
-      Warnings), with the `file:line` citations. Unresolved issues
+      Automation, then Warnings; findings on supplementary results, when
+      checked, are Warnings), with the `file:line` citations. Unresolved issues
       (`notDecided`) were not decided in this check: say so; the only
       follow-up on one finding is "I fixed this" after a fix.
 

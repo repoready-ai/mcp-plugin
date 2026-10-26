@@ -1,80 +1,65 @@
 # Changelog
 
-## 2.0.0 — unreleased (prepared 2026-10-10, brought in line with the release server 2026-10-12)
+## 2.0.0 — 2026-10-26
 
-For RepoReady's 2.x server. Published together with the server's 2.0.0
-release; until then production serves the 1.x server, so keep 1.0.1 there.
-
-Brought in line on 2026-10-13 with the server on monorepo
-`claude/integration-1013` (`8583813a`, 28 tools with the registry lookup,
-27 without):
-
-- **Issue lists say "Unresolved"** for an issue the check could not decide
-  (the server's markdown no longer says "not decided in this check").
-- **Materials hold code, data or both and can have several roles**
-  (`contents`, `roles` in `create_project`'s and `update_components`'
-  rows); the skill names them where the user reviews what was found.
-- **Check incomplete when the payer's key runs dry**: charged what it
-  spent, no automatic rerun, its answers kept; Check again on the same
-  payer continues it without paying for them again. The plain "Check
-  incomplete, not charged" stays for the check's own doubt.
-- **Scope labels** (owner 2026-10-13): "L1 check" and "L2 check" for the
-  user, in place of "Materials" and "Materials and workflow"; the `scope`
-  ids `materials` / `workflow` are unchanged; "Materials" stays the area
-  name.
-- **Cancel**: a cancelled check is charged what it spent until it stopped,
-  and the project keeps its last finished check.
-- **After a Materials check**, `list_issues` may leave out the Workflow and
-  Automation findings (`outsideScope`, `scopeNote`, being added on the
-  server's `claude/b6-b7`): the skill says they are not assessed in that
-  scope and offers "Continue to L2".
-
-Brought in line on 2026-10-12 with the server of the R1 release
-(monorepo `staging` `d1e02bcd`, `docs/MCP_SERVER.md` 2.0.0):
-
-- **No "Confirm this".** The `confirm` intent and `confirmFirst` are gone
-  from the skill: every check confirms its uncertain findings itself
-  (`get_run` shows `confirming`), the server refuses `confirm` with
-  `intent_retired`, and the only follow-up on one finding is "I fixed this"
-  (it checks the project again first, then that issue).
-- **The expected cost only.** The agent tells the user "about $X"
-  (`expectedUsd`, as the server's `next` / `note` texts word it), never the
-  ceiling; `ceilingUsd`, `chargeUsd` and `holdUsd` stay machine fields.
-- **Today's words.** Impact as the server returns it (Blocks L1, Blocks L2,
-  Caps at L1, Blocks L3, Blocks Automation, Warning) and in that order;
-  findings on supplementary results are Warnings, never blockers; finding
-  states Missing, Warning, Unresolved, Available, Not applicable (an issue
-  with `notDecided` is Unresolved); levels are no preview.
-- **New server fields and tools described:** `get_update` (what a new check
-  would read), `lookup_public_assessment` only while the public registry is
-  on, `targetJournal` and the Journal policy area, `checkVersion` choices,
-  `rootCauses`, the agents' policy refusals, badges issued in the web app
-  only, `payer.free` (a journal's sponsorship), share links sent by email
-  only on the user's request.
+For RepoReady's 2.x server (MCP server 2.0.0). Earlier plugin versions
+describe the retired score-based server.
 
 - **Levels instead of a score.** Each check gives one level: L0 Incomplete,
   L1 Available, L2 Rerunnable (L3 Re-executed and L4 Reproduced are not
   offered yet), with Integrity, Automation and Reuse as area results beside
-  it. The 0–100 score, categories and tiers are gone from the skill, the
-  commands and the README.
+  it, and Journal policy when a journal is known. The 0–100 score,
+  categories and tiers are gone from the skill, the commands and the
+  README.
+- **Review scopes.** An "L1 check" (are the code, data and software behind
+  each result shared?) awards at most L1; an "L2 check" (the full review
+  without running the code: workflow, integrity, automation, reuse) awards
+  at most L2. After an L1 check, "Continue to L2" checks the same inputs
+  for less than a new check, and the issue list says which findings were
+  not assessed in the L1 check.
 - **The 2.x flow.** `list_projects` / `identify_source` → `create_project`
-  or `estimate_run` → the user's explicit yes, with the expected cost and who pays →
-  `start_run` (and the browser approval link when it answers
+  or `estimate_run` → the user's explicit yes, with the expected cost and
+  who pays → `start_run` (and the browser approval link when it answers
   `awaiting_approval`) → `get_run` → `get_ladder` → `list_issues` /
   `get_issue` → "I fixed this" or Check again through `estimate_run`.
   The skill no longer uses `analyze_repo`, `get_report` or `get_findings`,
   which the server keeps for older plugins for one release.
-- **Review scopes.** Materials (at most L1) and Materials and workflow (at
-  most L2, static); "Continue to L2" after a Materials check.
+- **The expected cost only.** The agent tells the user "about $X"
+  (`expectedUsd`), never the most a check may spend.
+- **Supplementary results only on request.** By default a check does not
+  check supplementary figures, tables and datasets as results; it still
+  reads the supplementary files as materials of the main-text results.
+  Each quote names what also checking them would add ("+ about $Y",
+  `supportingExtraUsd`); on the user's request the agent prices the check
+  again with `check_supporting_results: true`. Findings on supplementary
+  results are Warnings, never blockers for a level.
+- **No "Confirm this".** Every check confirms its uncertain findings
+  itself (`get_run` shows `confirming`); what it could not decide is shown
+  as Unresolved. The only follow-up on one finding is "I fixed this"
+  (it checks the project again first, then that issue).
 - **Issues by Impact.** Blocks L1, Blocks L2, Caps at L1 (a confirmed
   paper–code contradiction on a key result), Blocks L3, Blocks Automation,
-  Warning; "what L2 needs" in text for people.
-- **Who pays.** A journal's sponsorship, an organization or individual plan,
-  or the user's own OpenRouter key; no free trial. "Check incomplete, not
-  charged" explained, including what an own key cannot get back.
+  Warning, in that order; "what L2 needs" in plain words. Finding states:
+  Missing, Warning, Unresolved, Available, Not applicable.
+- **Who pays.** A journal's sponsorship, an organization or individual
+  plan, or the user's own OpenRouter key; there are no free checks.
+- **Incomplete, stopped and cancelled checks.** A check that cannot finish
+  is "Check incomplete, not charged" and may rerun once by itself (if some
+  of the authors' code could not be read, only once that code is new); on
+  the user's own key, the provider's tokens for it are not refunded. A check stopped because the
+  payer's key ran out of credit is charged what it spent and keeps its
+  answers: Check again on the same payer continues it. A cancelled check is
+  charged what it spent until it stopped, and the project keeps its last
+  finished check.
 - **Papers and supplements.** Projects from a DOI, paper link or uploaded
   PDF / LaTeX zip, with separately uploaded supplementary files; the
   intake's coverage is reported before saying a paper was read in full.
+  Materials can hold code, data or both and have several roles.
+- **More of the server described:** `get_update` (what a new check would
+  read), `lookup_public_assessment` (only while the public registry is
+  on), `targetJournal` and the Journal policy area, `checkVersion`
+  choices, shared root causes, the agents' policy refusals, share links
+  sent by email only on the user's request, badges issued in the web app.
 - **Safety kept and tightened.** Find existing work first; upload
   exclusions (now also nested dependency folders, virtualenvs and notebook
   checkpoints); never open or approve an approval link for the user; text
@@ -83,7 +68,7 @@ Brought in line on 2026-10-12 with the server of the R1 release
   is waiting for the user (`list_updates`).
 - Manifests: version 2.0.0, new descriptions, a marketplace description.
 
-## 1.1.0 — 2026-09-30 (not published)
+## 1.1.0 (not published; included in 2.0.0)
 
 - Find existing work first: `get_account`, `list_projects` by git remote,
   `get_project`, `list_runs`.
