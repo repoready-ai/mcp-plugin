@@ -1,0 +1,14 @@
+{
+  "format": "repoready-self-check/1",
+  "skill_version": "0.1",
+  "date": "2026-11-06",
+  "agent": {"name": "Codex", "model": null},
+  "mode": "code_only",
+  "project": {"name": "demo-tool", "slug": "demo-tool", "repositories": [{"url": "https://github.com/example/demo-tool", "commit": "3333333333333333333333333333333333333333", "uncommitted_changes": false, "role": "method package"}]},
+  "result": {"level": null, "reuse": {"R1": {"status": "met", "note": "pyproject.toml; README: pip install demo-tool"}, "R2": {"status": "met"}, "R3": {"status": "not_met", "note": "No tests."}, "R4": {"status": "met", "note": "On PyPI; MIT."}}, "summary": "Installs and is documented; it has no tests."},
+  "requirements": [],
+  "findings": [
+    {"id": "r3-no-tests", "code": "R3", "impact": "reuse", "title": "No automated tests", "evidence": [{"where": "repository tree", "quote": "no tests/ folder, no CI workflow"}], "todo": "Add tests that run in seconds on shipped data and run them in CI.", "who": "agent_can_fix"},
+    {"id": "r4-no-changelog", "code": "R4", "impact": "warning", "title": "No changelog", "evidence": [{"where": "repository tree"}], "todo": "Add a CHANGELOG.md with notes per release.", "who": "agent_needs_answer"}
+  ]
+}

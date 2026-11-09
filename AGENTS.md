@@ -6,8 +6,8 @@ Read `docs/DEVELOPMENT_CONTEXT.md` and `docs/memory/MEMORY.md` at session start,
 
 - Shared instructions belong in `AGENTS.md`; Claude-specific setup belongs in `CLAUDE.md` and `.claude/settings.json`.
 - Plans belong in `docs/plans/`; use descriptive filenames and keep the index current. Update the existing plan for follow-up work.
-- Durable project decisions and lessons belong in `docs/memory/`, indexed by `docs/memory/MEMORY.md`. Keep the index short; put detail in topic files. Do not save secrets, personal account details, session transcripts or machine-specific credentials there.
-- Current status, branch ownership and handoffs belong in `docs/DEVELOPMENT_CONTEXT.md`. At handoff, record the actual branch/commit, files touched, checks completed and next step. Treat dated status as a snapshot and recheck Git before acting.
+- This repository and its history are public. Hand-offs, branch ownership, decisions with their reasoning, plans and test sets belong in the private monorepo's `docs/plugin-notes/`, never here or in a commit message.
+- `docs/memory/` and `docs/DEVELOPMENT_CONTEXT.md` hold only what anyone may read; keep `docs/memory/MEMORY.md` short. Treat dated status as a snapshot and recheck Git before acting.
 - Do not use `~/.claude/plans`, private auto-memory or temporary scratchpads as the sole source for a project decision or deliverable. Promote useful conclusions into the repository before finishing a task. Historical local copies are migration sources, not authoritative plans.
 - Latest explicit user instructions take precedence. A newer dated decision supersedes an older entry. Imported historical notes are leads to verify, not proof of the current implementation or deployment.
 

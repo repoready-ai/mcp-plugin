@@ -1,0 +1,28 @@
+{
+  "format": "repoready-self-check/1",
+  "skill_version": "0.1",
+  "date": "2026-11-01",
+  "agent": {"name": "Claude Code", "model": null},
+  "mode": "paper_and_code",
+  "project": {
+    "name": "Demo study",
+    "slug": "demo-study",
+    "repositories": [{"url": "https://github.com/example/demo-study", "ref": "main", "commit": "1111111111111111111111111111111111111111", "uncommitted_changes": false, "role": "paper analysis"}],
+    "paper": {"title": "A demo study", "doi": "10.1234/demo", "read_from": "PDF from the user"}
+  },
+  "result": {"level": "L0", "summary": "Fig 3 has no code that computes it."},
+  "results": [
+    {"label": "Fig 2", "checked": true, "A1": "met", "A2": "met", "A3": "met", "code": ["analysis/fig2.py:31"]},
+    {"label": "Fig 3", "checked": true, "A1": "not_met", "A2": "met", "A3": "met"}
+  ],
+  "requirements": [
+    {"code": "A1", "status": "not_met", "note": "Fig 3 has no code."},
+    {"code": "B2", "status": "not_met"},
+    {"code": "B8", "status": "not_met"}
+  ],
+  "findings": [
+    {"id": "a1-fig3-no-code", "code": "A1", "impact": "blocks_l1", "title": "No shared code computes Fig 3", "evidence": [{"where": "README.md:12"}], "todo": "Share the script that computes Fig 3.", "who": "authors_only"},
+    {"id": "b2-no-cited-version", "code": "B2", "impact": "blocks_l2", "title": "The paper cites the repository without a fixed version", "evidence": [{"where": "Paper, Code availability"}], "todo": "Tag and archive the submitted version and cite its version DOI.", "who": "authors_only"},
+    {"id": "b8-home-path", "code": "B8", "impact": "blocks_l2", "title": "A path from one computer in analysis/fig2.py", "evidence": [{"where": "analysis/fig2.py:8", "quote": "DATA = '/home/me/data'"}], "todo": "Build the path from the repository root.", "who": "agent_can_fix"}
+  ]
+}
