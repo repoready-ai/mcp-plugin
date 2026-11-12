@@ -66,15 +66,18 @@ pages it needs (the paper, public repositories, package indexes).
   makes the account). RepoReady receives the sign-in and one `get_account`
   call, nothing of the work. If you are not signed in, the agent says so
   before it reads anything, gives you the one line to connect, and waits.
-- **Code alone**: a method, tool or package gets the Software reuse result
-  R1–R4 ("Reusable" or "Reuse: n of 4"); analysis code without its paper
-  gets "No level · add the paper".
+- **No level, to-dos by severity.** A self-check gives no level. Each to-do
+  is **Critical** (code, data or software behind a result is missing),
+  **Important** (the work cannot yet be rerun as documented, or a tool
+  installed and used) or **Recommended** (good practice).
+- **Code alone**: a method, tool or package is checked against Software
+  reuse R1–R4; analysis code without its paper gets its workflow to-dos and
+  the advice to add the paper.
 - **A paper with its code** (give it a PDF or DOI): RepoReady also
   receives, when the paper has them, its public link and the public
   repositories it names, to find the paper's materials; with a private PDF
-  and no public link, nothing beyond the account call. You get an
-  indicative level, self-assessed and at most L2 (L0 Incomplete, L1
-  Available, L2 Rerunnable), over the Materials and the workflow basics of
+  and no public link, nothing beyond the account call. It checks the
+  Materials and the workflow basics of
   RepoReady's public [checklist](https://repoready.ai/checklist) and
   [guides](https://repoready.ai/docs/checks).
 - **Main-text results, static**: every main-text figure and table that
@@ -88,16 +91,23 @@ pages it needs (the paper, public repositories, package indexes).
 - **What can change the level is looked at.** Paper and code are compared
   when a check would otherwise reach L2, and each input resting on a deposit
   is looked up in the deposit's public file list.
-- **Not checked**, and the report says so: Integrity below that point,
-  anything in deposits beyond their public file lists, supplementary
-  results, verification by a second model, L3/L4.
+- **Not checked:** Integrity below that point, anything in deposits beyond
+  their public file lists, supplementary results, verification by a second
+  model, L3/L4. The report links the page that explains this.
 - **The report**: `repoready-self-check/<date>-<slug>.html` and `.md` (print
   the HTML from your browser to get a PDF), plus the `findings.json` behind
-  them. It says "Self-check · user generated · not a RepoReady
-  certification" in its header and footer, carries a SELF-CHECK watermark,
-  uses grey instead of the level colours, names the agent, the model, the
-  skill's version, the date and the commit, and shows "Since the last
-  self-check: n fixed · n still open · n new" when you run it again.
+  them. It shows the RepoReady logo and a link to the page on how the
+  self-check works at the top (printed pages say "Self-check · user
+  generated · not a RepoReady certification" in their margin), counts the to-dos by severity, leads with
+  them in plain words (the evidence folded under each), links the
+  repository, the commit and the paper's DOI, names the agent, the model
+  and the skill's version, and shows "Since the last self-check: n fixed ·
+  n still open · n new" when you run it again. No level, no status image.
+- **Make it ready.** Ask "make this repository submission ready" and the
+  agent sets up a branch, assembles a clean submission repository first
+  when the code is a mess (several versions of a script, code no result
+  uses), checks, fixes what it can, asks you what only you know, checks
+  again and leaves the release and DOI to you, step by step.
 
 **Signed in.** A check with a paper finds the paper's materials with
 RepoReady's free discovery when the paper has public links (repositories,

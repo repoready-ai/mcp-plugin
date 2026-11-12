@@ -4,8 +4,9 @@
   scripts/render_report.py fills it from findings.json. To fill it by hand
   (no Python): replace every {{name}} with plain text (write &amp; &lt; &gt;
   for & < >), and replace every "slot" comment with markup shaped like the
-  examples in the comment at the end of this file. Keep the header, the
-  watermark, the footer and the grey colours exactly as they are.
+  examples in the comment at the end of this file. Keep the header (logo
+  and link) and the colours exactly as they are. A self-check gives no level:
+  each to-do has a severity (Critical, Important, Recommended).
 -->
 <html lang="en">
 <head>
@@ -16,24 +17,38 @@
 <style>
   :root {
     --bg: #ffffff;
-    --surface: #f4f4f5;
-    --line: #d4d4d8;
-    --text: #18181b;
-    --muted: #52525b;
-    --faint: #71717a;
-    --mark: rgba(24, 24, 27, 0.055);
+    --surface: #f4f6fa;
+    --line: #dce1eb;
+    --text: #151b2b;
+    --body: #3a4358;
+    --muted: #5b6478;
+    --brand: #0a6fe6;
+    --brand-text: #0759b4;
+    --brand-soft: #f3f9ff;
+    --brand-line: #b9ddff;
+    --good: #047857; --good-bg: #ecfdf5; --good-line: #a7f3d0;
+    --warn: #92400e; --warn-bg: #fffbeb; --warn-line: #fde68a; --warn-mark: #d97706;
+    --crit: #be123c; --crit-bg: #fff1f2; --crit-line: #fecdd3; --crit-mark: #e11d48;
+    --none: #5b6478; --none-bg: #f4f6fa; --none-line: #dce1eb;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #18181b;
-      --surface: #27272a;
-      --line: #3f3f46;
-      --text: #f4f4f5;
-      --muted: #a1a1aa;
-      --faint: #a1a1aa;
-      --mark: rgba(244, 244, 245, 0.06);
+      --bg: #111624;
+      --surface: #1b2234;
+      --line: #2e3850;
+      --text: #f4f6fa;
+      --body: #d6dbe6;
+      --muted: #a3acbf;
+      --brand: #4aa6ff;
+      --brand-text: #84c4ff;
+      --brand-soft: #102545;
+      --brand-line: #1d4b80;
+      --good: #6ee7b7; --good-bg: #0d2a22; --good-line: #14532d;
+      --warn: #fcd34d; --warn-bg: #2b2210; --warn-line: #713f12; --warn-mark: #f59e0b;
+      --crit: #fda4af; --crit-bg: #2e1219; --crit-line: #7f1d1d; --crit-mark: #fb7185;
+      --none: #a3acbf; --none-bg: #1b2234; --none-line: #2e3850;
     }
   }
   * { box-sizing: border-box; }
@@ -41,95 +56,139 @@
   body {
     margin: 0;
     background: var(--bg);
-    color: var(--text);
+    color: var(--body);
     font: 15px/1.55 var(--sans);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  main { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 24px 16px 48px; }
-  .watermark {
-    position: fixed; inset: 0; z-index: 2; pointer-events: none;
-    display: flex; align-items: center; justify-content: center; overflow: hidden;
-  }
-  .watermark span {
-    transform: rotate(-28deg);
-    font: 800 clamp(64px, 16vw, 150px)/1 var(--sans);
-    letter-spacing: 0.08em; color: var(--mark); white-space: nowrap;
-  }
-  .notice {
-    border: 1.5px solid var(--text); border-radius: 6px;
-    padding: 8px 12px; margin: 0 0 20px;
-    font-weight: 700; letter-spacing: 0.01em; text-align: center;
-  }
-  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; }
-  h2 { font-size: 19px; margin: 32px 0 10px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
-  h3 { font-size: 16px; margin: 22px 0 8px; }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 28px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 12px; color: var(--text); }
+  h2 { font-size: 19px; margin: 40px 0 10px; padding-bottom: 4px; border-bottom: 2px solid var(--brand-line); color: var(--text); }
+  h3 { font-size: 16px; margin: 22px 0 8px; color: var(--brand-text); }
   p { margin: 0 0 10px; }
-  a { color: inherit; }
-  code, .mono { font-family: var(--mono); font-size: 0.88em; overflow-wrap: anywhere; }
-  main, footer, td, th, li, p { overflow-wrap: anywhere; }
+  a { color: var(--brand-text); }
+  code { font-family: var(--mono); font-size: 0.88em; overflow-wrap: anywhere; }
+  main, td, th, li, p { overflow-wrap: anywhere; }
   .sub { color: var(--muted); margin: 0 0 18px; }
-  .result {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-    padding: 16px 18px; margin: 0 0 16px;
-  }
-  .result .line { font-size: 21px; font-weight: 700; margin: 0 0 6px; }
-  .result .scope { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
-  .since { font-weight: 600; margin: 0 0 4px; }
+  .result .summary { max-width: 68ch; font-size: 16.5px; line-height: 1.6; margin: 0 0 8px; color: var(--text); }
+  .result .since { font-size: 14px; margin: 0; color: var(--muted); }
   table { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 14px; }
   th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 600; }
+  thead th { background: var(--surface); }
   table.facts th { width: 11em; }
   table.results td:first-child { width: 34%; }
   table.results td:last-child { width: 34%; }
-  .state { display: inline-block; padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); white-space: nowrap; font-size: 13px; }
-  .tag { display: inline-block; font-family: var(--mono); font-size: 12.5px; padding: 0 6px; border: 1px solid var(--text); border-radius: 4px; margin-right: 6px; }
-  .finding { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; break-inside: avoid; }
-  .finding h4 { font-size: 15.5px; margin: 0 0 6px; }
-  .finding .meta { color: var(--muted); font-size: 13.5px; margin: 0 0 8px; }
-  .finding ul { margin: 0 0 8px; padding-left: 20px; }
-  .finding li { margin: 0 0 4px; }
-  .finding .quote { display: block; color: var(--muted); font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
-  .todo { background: var(--surface); border-radius: 6px; padding: 8px 10px; margin: 0; }
+  .state { display: inline-block; padding: 0 7px; border: 1px solid var(--none-line); border-radius: 999px; background: var(--none-bg); color: var(--none); white-space: nowrap; font-size: 13px; font-weight: 600; }
+  .state.met { color: var(--good); background: var(--good-bg); border-color: var(--good-line); }
+  .state.not_met { color: var(--crit); background: var(--crit-bg); border-color: var(--crit-line); }
+  .state.not_settled { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-line); }
+  .tag { display: inline-block; font-family: var(--mono); font-size: 12.5px; padding: 0 6px; border: 1px solid var(--brand-line); border-radius: 4px; background: var(--brand-soft); color: var(--brand-text); margin-right: 6px; }
+  .sev { display: inline-block; flex: none; padding: 1px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em; border: 1px solid; }
+  .sev-critical { color: var(--crit); background: var(--crit-bg); border-color: var(--crit-line); }
+  .sev-important { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-line); }
+  .sev-recommended { color: var(--brand-text); background: var(--brand-soft); border-color: var(--brand-line); }
+  .todo-card { border: 1px solid var(--line); border-left: 4px solid var(--none-line); border-radius: 10px; padding: 14px 16px 12px; margin: 0 0 12px; background: var(--bg); break-inside: avoid; }
+  .todo-card.sev-edge-critical { border-left-color: var(--crit-mark); }
+  .todo-card.sev-edge-important { border-left-color: var(--warn-mark); }
+  .todo-card.sev-edge-recommended { border-left-color: var(--brand); }
+  .later > p.muted { margin: 0 0 12px; }
+  .todo-card.later-card { border-left-color: var(--muted); }
+  .sev-later { color: var(--body); background: var(--surface); border-color: var(--line); }
+  .todo-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 6px; }
+  .todo-head h4 { font-size: 16.5px; line-height: 1.35; margin: 0; color: var(--text); }
+  .why { margin: 0 0 8px; }
+  .meta { color: var(--muted); font-size: 13.5px; margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+  .who { display: inline-block; padding: 0 8px; border-radius: 4px; font-size: 12.5px; font-weight: 600; background: var(--surface); color: var(--body); }
+  .who-agent_can_fix { background: var(--good-bg); color: var(--good); }
+  .who-agent_needs_answer { background: var(--brand-soft); color: var(--brand-text); }
+  .who-authors_only { background: var(--surface); color: var(--body); }
+  details.evidence { border-top: 1px dashed var(--line); padding-top: 8px; }
+  details.evidence > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--brand-text); font-weight: 600; user-select: none; }
+  details.evidence > summary::-webkit-details-marker { display: none; }
+  details.evidence > summary::before { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; margin-right: 2px; }
+  details.evidence[open] > summary::before { transform: rotate(45deg); }
+  details.evidence > summary .count { color: var(--muted); font-weight: 400; font-family: var(--mono); font-size: 12px; }
+  details.evidence > summary .opened, details.evidence[open] > summary .closed { display: none; }
+  details.evidence[open] > summary .opened { display: inline; }
+  .evidence-body { margin: 10px 0 2px; background: var(--surface); border-radius: 8px; padding: 4px 12px; font-size: 13.5px; }
+  .finding { padding: 8px 0; }
+  .finding + .finding { border-top: 1px solid var(--line); }
+  .f-title { font-weight: 600; color: var(--text); margin: 0 0 4px; }
+  .f-title .tag { font-weight: 400; }
+  .f-detail { margin: 0 0 4px; }
+  .finding ul.ev { margin: 0 0 4px; padding-left: 18px; }
+  .finding li { margin: 0 0 2px; }
+  .finding .quote { display: block; color: var(--muted); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+  .f-fix { margin: 0; color: var(--body); }
+  .f-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-right: 4px; }
+  details.panel { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px; }
+  details.panel > summary { cursor: pointer; font-weight: 600; color: var(--text); }
+  details.panel[open] > summary { margin-bottom: 8px; }
   .muted { color: var(--muted); }
+  .ref { display: inline-block; font-family: var(--mono); font-size: 12.5px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+  table.facts a { text-decoration: none; }
+  table.facts a:hover { text-decoration: underline; }
   .scroll { overflow-x: auto; }
-  footer { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; padding: 16px 16px 40px; color: var(--muted); font-size: 13.5px; border-top: 1px solid var(--line); }
-  footer .notice { color: var(--text); }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px 20px; flex-wrap: wrap; padding: 0 0 14px; margin: 0 0 28px; border-bottom: 1px solid var(--line); }
+  .brand { display: inline-flex; line-height: 0; }
+  .logo { height: 28px; width: auto; color: var(--text); }
+  .howto { font-size: 14px; font-weight: 600; text-decoration: none; color: var(--brand-text); white-space: nowrap; }
+  .howto::after { content: " →"; }
+  .howto:hover { text-decoration: underline; }
   @media (max-width: 600px) {
+    main { padding-top: 16px; }
+    .top { margin-bottom: 20px; }
+    h1 { font-size: 24px; }
+    h2 { margin-top: 32px; }
     table.facts th { width: auto; }
     th, td { padding: 5px 4px; }
   }
   @media print {
-    :root { --bg: #ffffff; --surface: #f4f4f5; --line: #c4c4c8; --text: #000000; --muted: #3f3f46; --faint: #52525b; --mark: rgba(0, 0, 0, 0.07); }
+    :root {
+      --bg: #ffffff; --surface: #f4f6fa; --line: #c2c9d7; --text: #000000; --body: #151b2b; --muted: #3a4358;
+      --brand: #0a6fe6; --brand-text: #0759b4; --brand-soft: #f3f9ff; --brand-line: #b9ddff;
+      --good: #047857; --good-bg: #ecfdf5; --good-line: #a7f3d0;
+      --warn: #92400e; --warn-bg: #fffbeb; --warn-line: #fde68a; --warn-mark: #d97706;
+      --crit: #be123c; --crit-bg: #fff1f2; --crit-line: #fecdd3; --crit-mark: #e11d48;
+      --none: #3a4358; --none-bg: #f4f6fa; --none-line: #c2c9d7;
+    }
     @page {
       size: A4; margin: 16mm 14mm 20mm;
       @top-center { content: "Self-check · user generated · not a RepoReady certification"; font: 8pt system-ui, sans-serif; color: #000; }
-      @bottom-center { content: "SELF-CHECK · page " counter(page) " of " counter(pages); font: 8pt system-ui, sans-serif; color: #000; }
+      @bottom-center { content: "Self-check · page " counter(page) " of " counter(pages); font: 8pt system-ui, sans-serif; color: #000; }
     }
     body { font-size: 11pt; }
     main { max-width: none; padding: 0; }
-    footer { max-width: none; padding: 12px 0 0; }
-    .watermark span { font-size: 96px; }
     a { text-decoration: none; }
-    h2, h3, h4 { break-after: avoid; }
-    .finding, tr { break-inside: avoid; }
+    h2, h3, h4, h5 { break-after: avoid; }
+    .todo-card, .finding, tr { break-inside: avoid; }
+    details.evidence > summary { display: none; }
+    /* Printed reports show the technical details unfolded. */
+    details::details-content { content-visibility: visible; display: block; }
+    details summary { list-style: none; }
     .scroll { overflow: visible; }
   }
 </style>
 </head>
 <body>
-<div class="watermark" aria-hidden="true"><span>SELF-CHECK</span></div>
 <main>
-  <p class="notice">Self-check · user generated · not a RepoReady certification</p>
+  <header class="top">
+    <a class="brand" href="https://repoready.ai/self-check?ref=report"><svg class="logo" viewBox="0 0 1126 304" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RepoReady" fill="currentColor" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;"><defs><path id="rr0" d="M0.09,-0L0.09,-0.7L0.37,-0.7C0.42,-0.7 0.47,-0.7 0.5,-0.68C0.54,-0.66 0.56,-0.64 0.58,-0.6C0.6,-0.57 0.61,-0.53 0.61,-0.49L0.61,-0.48C0.61,-0.44 0.6,-0.4 0.58,-0.36C0.56,-0.33 0.52,-0.3 0.48,-0.28L0.64,-0L0.49,-0L0.35,-0.27L0.21,-0.27L0.21,-0L0.09,-0ZM0.21,-0.36L0.36,-0.36C0.4,-0.36 0.43,-0.37 0.45,-0.39C0.47,-0.41 0.48,-0.44 0.48,-0.48L0.48,-0.48C0.48,-0.52 0.47,-0.55 0.45,-0.57C0.43,-0.59 0.4,-0.6 0.36,-0.6L0.21,-0.6L0.21,-0.36Z"/><path id="rr1" d="M0.3,0.01C0.25,0.01 0.2,0 0.17,-0.02C0.13,-0.04 0.1,-0.08 0.08,-0.12C0.06,-0.16 0.05,-0.21 0.05,-0.27L0.05,-0.27C0.05,-0.32 0.06,-0.37 0.08,-0.41C0.1,-0.45 0.13,-0.49 0.17,-0.51C0.2,-0.53 0.25,-0.54 0.3,-0.54C0.35,-0.54 0.39,-0.53 0.43,-0.51C0.47,-0.49 0.49,-0.46 0.51,-0.42C0.53,-0.38 0.54,-0.33 0.54,-0.28L0.54,-0.24L0.11,-0.24L0.11,-0.32L0.48,-0.32L0.42,-0.24L0.42,-0.29C0.42,-0.33 0.42,-0.35 0.41,-0.38C0.4,-0.4 0.38,-0.42 0.36,-0.43C0.34,-0.44 0.32,-0.45 0.3,-0.45C0.27,-0.45 0.25,-0.44 0.23,-0.43C0.21,-0.42 0.2,-0.4 0.19,-0.38C0.17,-0.35 0.17,-0.32 0.17,-0.29L0.17,-0.24C0.17,-0.21 0.17,-0.18 0.19,-0.16C0.2,-0.13 0.21,-0.12 0.23,-0.1C0.25,-0.09 0.28,-0.09 0.3,-0.09C0.33,-0.09 0.35,-0.09 0.36,-0.09C0.38,-0.1 0.39,-0.11 0.4,-0.12C0.41,-0.13 0.42,-0.13 0.42,-0.14L0.42,-0.15L0.54,-0.15L0.54,-0.14C0.53,-0.12 0.52,-0.11 0.51,-0.09C0.5,-0.07 0.49,-0.06 0.47,-0.04C0.45,-0.03 0.42,-0.01 0.4,0C0.37,0.01 0.34,0.01 0.3,0.01Z"/></defs><g transform="matrix(1,0,0,1,-60.5393,-281.994)"><g transform="matrix(13.0686,0,0,13.0686,1049.14,512.179)"><g transform="matrix(0.0789583,0,0,0.0789583,-92.4154,-35.9893)"><use href="#rr0" transform="matrix(144,0,0,144,535.132,428.637)"/><use href="#rr1" transform="matrix(144,0,0,144,621.996,428.637)"/><g transform="matrix(144,0,0,144,698.321,428.637)"><path d="M0.07,0.18L0.07,-0.53L0.2,-0.53L0.2,-0.45L0.2,-0.45C0.21,-0.47 0.23,-0.49 0.24,-0.5C0.26,-0.51 0.28,-0.52 0.3,-0.53C0.32,-0.54 0.34,-0.54 0.37,-0.54C0.41,-0.54 0.45,-0.53 0.48,-0.51C0.52,-0.49 0.54,-0.45 0.56,-0.41C0.58,-0.37 0.58,-0.32 0.58,-0.27L0.58,-0.27C0.58,-0.21 0.58,-0.16 0.56,-0.12C0.54,-0.08 0.52,-0.05 0.48,-0.03C0.45,0 0.41,0.01 0.37,0.01C0.34,0.01 0.32,0.01 0.3,0C0.28,-0.01 0.26,-0.02 0.24,-0.04C0.23,-0.05 0.21,-0.07 0.2,-0.09L0.2,-0.09L0.2,0.18L0.07,0.18ZM0.33,-0.09C0.36,-0.09 0.38,-0.1 0.4,-0.11C0.42,-0.13 0.43,-0.15 0.45,-0.17C0.46,-0.2 0.46,-0.23 0.46,-0.27L0.46,-0.27C0.46,-0.3 0.46,-0.33 0.45,-0.36C0.43,-0.39 0.42,-0.41 0.4,-0.42C0.38,-0.43 0.36,-0.44 0.33,-0.44C0.3,-0.44 0.28,-0.43 0.26,-0.42C0.24,-0.41 0.22,-0.39 0.21,-0.36C0.2,-0.33 0.19,-0.3 0.19,-0.27L0.19,-0.27C0.19,-0.23 0.2,-0.2 0.21,-0.17C0.22,-0.15 0.24,-0.13 0.26,-0.12C0.28,-0.1 0.3,-0.09 0.33,-0.09Z"/></g><g transform="matrix(144,0,0,144,780.917,428.637)"><path d="M0.3,0.01C0.25,0.01 0.21,-0 0.17,-0.02C0.13,-0.04 0.1,-0.08 0.08,-0.12C0.06,-0.16 0.05,-0.21 0.05,-0.27L0.05,-0.27C0.05,-0.33 0.06,-0.37 0.08,-0.41C0.1,-0.46 0.13,-0.49 0.17,-0.51C0.21,-0.53 0.25,-0.54 0.3,-0.54C0.36,-0.54 0.4,-0.53 0.44,-0.51C0.48,-0.49 0.51,-0.46 0.53,-0.41C0.55,-0.37 0.56,-0.33 0.56,-0.27L0.56,-0.27C0.56,-0.21 0.55,-0.16 0.53,-0.12C0.51,-0.08 0.48,-0.04 0.44,-0.02C0.4,-0 0.36,0.01 0.3,0.01ZM0.3,-0.09C0.33,-0.09 0.36,-0.1 0.38,-0.11C0.4,-0.12 0.41,-0.14 0.42,-0.17C0.43,-0.2 0.44,-0.23 0.44,-0.27L0.44,-0.27C0.44,-0.3 0.43,-0.34 0.42,-0.36C0.41,-0.39 0.4,-0.41 0.38,-0.42C0.36,-0.44 0.33,-0.45 0.3,-0.45C0.28,-0.45 0.25,-0.44 0.23,-0.42C0.21,-0.41 0.2,-0.39 0.19,-0.36C0.18,-0.34 0.17,-0.3 0.17,-0.27L0.17,-0.27C0.17,-0.23 0.18,-0.2 0.19,-0.17C0.2,-0.14 0.21,-0.12 0.23,-0.11C0.25,-0.1 0.28,-0.09 0.3,-0.09Z"/></g><use href="#rr0" transform="matrix(144,0,0,144,859.988,428.637)"/><use href="#rr1" transform="matrix(144,0,0,144,946.852,428.637)"/><g transform="matrix(144,0,0,144,1023.18,428.637)"><path d="M0.22,0.01C0.19,0.01 0.16,0 0.13,-0.01C0.1,-0.02 0.08,-0.04 0.07,-0.07C0.05,-0.09 0.04,-0.12 0.04,-0.15L0.04,-0.15C0.04,-0.18 0.05,-0.21 0.07,-0.23C0.08,-0.26 0.11,-0.27 0.14,-0.29C0.17,-0.3 0.2,-0.31 0.25,-0.31L0.44,-0.32L0.44,-0.24L0.26,-0.23C0.23,-0.23 0.2,-0.22 0.19,-0.21C0.17,-0.2 0.16,-0.18 0.16,-0.16L0.16,-0.16C0.16,-0.13 0.17,-0.12 0.19,-0.1C0.21,-0.09 0.23,-0.08 0.26,-0.08C0.28,-0.08 0.3,-0.09 0.32,-0.1C0.34,-0.11 0.36,-0.12 0.37,-0.14C0.38,-0.16 0.38,-0.17 0.38,-0.2L0.38,-0.36C0.38,-0.39 0.38,-0.41 0.36,-0.43C0.34,-0.44 0.32,-0.45 0.28,-0.45C0.26,-0.45 0.23,-0.44 0.22,-0.43C0.2,-0.42 0.19,-0.41 0.18,-0.39L0.18,-0.39L0.07,-0.39L0.07,-0.39C0.07,-0.42 0.08,-0.45 0.1,-0.47C0.12,-0.5 0.15,-0.51 0.18,-0.53C0.21,-0.54 0.25,-0.54 0.29,-0.54C0.34,-0.54 0.38,-0.54 0.41,-0.52C0.44,-0.51 0.46,-0.49 0.48,-0.46C0.5,-0.43 0.51,-0.4 0.51,-0.36L0.51,-0L0.38,-0L0.38,-0.07L0.38,-0.07C0.37,-0.06 0.35,-0.04 0.34,-0.03C0.32,-0.02 0.3,-0.01 0.28,0C0.27,0.01 0.24,0.01 0.22,0.01Z"/></g><g transform="matrix(144,0,0,144,1097.45,428.637)"><path d="M0.27,0.01C0.22,0.01 0.18,0 0.15,-0.03C0.12,-0.05 0.09,-0.08 0.07,-0.12C0.06,-0.16 0.05,-0.21 0.05,-0.27L0.05,-0.27C0.05,-0.32 0.06,-0.37 0.07,-0.41C0.09,-0.46 0.12,-0.49 0.15,-0.51C0.18,-0.53 0.22,-0.54 0.27,-0.54C0.29,-0.54 0.31,-0.54 0.34,-0.53C0.36,-0.52 0.38,-0.51 0.39,-0.5C0.41,-0.48 0.42,-0.47 0.43,-0.45L0.44,-0.45L0.44,-0.74L0.56,-0.74L0.56,-0L0.44,-0L0.44,-0.08L0.43,-0.08C0.42,-0.06 0.41,-0.05 0.39,-0.03C0.38,-0.02 0.36,-0.01 0.34,0C0.32,0.01 0.29,0.01 0.27,0.01ZM0.3,-0.09C0.33,-0.09 0.36,-0.1 0.38,-0.11C0.4,-0.13 0.41,-0.15 0.42,-0.17C0.43,-0.2 0.44,-0.23 0.44,-0.27L0.44,-0.27C0.44,-0.3 0.43,-0.33 0.42,-0.36C0.41,-0.39 0.4,-0.41 0.38,-0.42C0.36,-0.43 0.33,-0.44 0.3,-0.44C0.28,-0.44 0.25,-0.43 0.23,-0.42C0.21,-0.41 0.2,-0.39 0.19,-0.36C0.18,-0.33 0.17,-0.3 0.17,-0.27L0.17,-0.27C0.17,-0.23 0.18,-0.2 0.19,-0.17C0.2,-0.15 0.21,-0.13 0.23,-0.11C0.25,-0.1 0.28,-0.09 0.3,-0.09Z"/></g><g transform="matrix(144,0,0,144,1180.65,428.637)"><path d="M0.13,0.19C0.12,0.19 0.12,0.19 0.11,0.19C0.1,0.19 0.09,0.19 0.09,0.19L0.09,0.09C0.09,0.09 0.1,0.09 0.1,0.09C0.11,0.09 0.12,0.09 0.12,0.09C0.15,0.09 0.17,0.09 0.18,0.08C0.2,0.07 0.21,0.05 0.21,0.03L0.22,0L0.03,-0.53L0.16,-0.53L0.3,-0.06L0.27,-0.12L0.31,-0.12L0.28,-0.06L0.42,-0.53L0.55,-0.53L0.36,0.01C0.34,0.06 0.32,0.09 0.3,0.12C0.28,0.14 0.26,0.16 0.23,0.17C0.2,0.18 0.17,0.19 0.13,0.19Z"/></g><g transform="matrix(144,0,0,144,1269.55,428.637)"></g><g transform="matrix(144,0,0,144,1299.27,428.637)"></g></g><g transform="matrix(0.0765191,0,0,0.0765191,-79.4801,-38.5046)"><rect x="50.095" y="273.018" width="1125.96" height="303.404" style="fill:none;"/></g></g><g transform="matrix(0.335457,0,0,0.313449,75.1254,272.693)"><path d="M706.77,403.38L706.77,650.33C706.77,718.48 655.08,773.81 591.4,773.81L186.55,773.81C122.88,773.81 71.18,718.48 71.18,650.33L71.18,403.38C71.18,335.23 122.88,279.9 186.55,279.9L591.4,279.9C655.08,279.9 706.77,335.23 706.77,403.38Z" style="fill:rgb(222,222,222);"/></g><g transform="matrix(0.787035,0,0,0.787035,19.1904,82.5055)"><path d="M212.97,421.17L174.59,460.16L211.53,497.1" style="fill:none;stroke:black;stroke-width:20.33px;"/></g><g transform="matrix(-0.787035,9.63839e-17,-9.63839e-17,-0.787035,400.056,805.217)"><path d="M212.97,421.17L174.59,460.16L211.53,497.1" style="fill:none;stroke:black;stroke-width:20.33px;"/></g><g transform="matrix(0.355711,0,0,0.355711,77.9094,259.217)"><circle cx="649.801" cy="269.353" r="113.476" style="fill:rgb(255,160,160);"/></g><g transform="matrix(7.2642,0,0,7.2642,220.023,265.762)"><path d="M9.56,3.7C10.76,2.02 13.24,2.02 14.44,3.7L14.63,3.96C14.84,4.26 15.2,4.42 15.56,4.38L16.41,4.28C18.32,4.07 19.93,5.68 19.72,7.59L19.62,8.44C19.58,8.8 19.74,9.16 20.04,9.37L20.3,9.56C21.98,10.76 21.98,13.24 20.3,14.44L20.04,14.63C19.74,14.84 19.58,15.2 19.62,15.56L19.72,16.41C19.93,18.32 18.32,19.93 16.41,19.72L15.56,19.62C15.2,19.58 14.84,19.74 14.63,20.04L14.44,20.3C13.24,21.98 10.76,21.98 9.56,20.3L9.37,20.04C9.16,19.74 8.8,19.58 8.44,19.62L7.59,19.72C5.68,19.93 4.07,18.32 4.28,16.41L4.38,15.56C4.42,15.2 4.26,14.84 3.96,14.63L3.7,14.44C2.02,13.24 2.02,10.76 3.7,9.56L3.96,9.37C4.26,9.16 4.42,8.8 4.38,8.44L4.28,7.59C4.07,5.68 5.68,4.07 7.59,4.28L8.44,4.38C8.8,4.42 9.16,4.26 9.37,3.96L9.56,3.7ZM15.71,9.29C16.1,9.68 16.1,10.32 15.71,10.71L11.89,14.53C11.4,15.02 10.6,15.02 10.11,14.53L8.29,12.71C7.9,12.32 7.9,11.68 8.29,11.29C8.68,10.9 9.32,10.9 9.71,11.29L11,12.59L14.29,9.29C14.68,8.9 15.32,8.9 15.71,9.29Z" style="fill:rgb(118,0,255);"/></g></g></svg></a>
+    <a class="howto" href="https://repoready.ai/docs/self-check?ref=report#reads" title="What a self-check covers and what it leaves out">How the self-check works</a>
+  </header>
   <h1>{{project_name}}</h1>
-  <p class="sub">Reproducibility self-check of {{date}} · written by {{agent_name}} ({{model_text}}) with the RepoReady self-check skill v{{skill_version}}</p>
 
   <section class="result" aria-label="Result">
-    <p class="line">{{result_line}}</p>
-    <p class="scope">{{scope_line}}</p>
-    <p>{{summary}}</p>
-    <p class="muted">{{next_line}}</p>
+    <p class="summary">{{summary}}</p>
     <p class="since">{{since_line}}</p>
-    <!-- slot:since_details -->
   </section>
+
+  <h2>To-dos</h2>
+  <!-- slot:findings -->
+
+  <!-- slot:results -->
+
+  <!-- slot:reuse -->
 
   <h2>About this self-check</h2>
   <div class="scroll"><table class="facts">
@@ -138,53 +197,53 @@
     </tbody>
   </table></div>
 
-  <!-- slot:results -->
-
-  <!-- slot:reuse -->
-
   <!-- slot:requirements -->
 
-  <h2>To-dos</h2>
-  <!-- slot:findings -->
-
-  <h2>Not checked</h2>
-  <p>A self-check reads the code and the paper once, in your own agent. It does not cover:</p>
-  <ul>
-    <!-- slot:not_checked -->
-  </ul>
 </main>
-<footer>
-  <p class="notice">Self-check · user generated · not a RepoReady certification</p>
-  <p>Written by {{agent_name}} ({{model_text}}) with the RepoReady self-check skill v{{skill_version}} (from RepoReady's public guides) on {{date}}, at {{commit_text}}. The level is self-assessed and indicative, at most L2. Nothing was sent to RepoReady.</p>
-  <p>RepoReady Platform assessments, whose levels and share links count, come through institutes and journals: <a href="https://repoready.ai/self-check?ref=report">repoready.ai/self-check</a>.</p>
-</footer>
 <!--
   Example markup for the slots (the renderer writes exactly this shape).
 
-  slot:since_details   <p class="muted">Fixed: B8 · Paths from one computer in scripts/fig2.py</p>   (or nothing)
-
-  slot:facts           <tr><th scope="row">Agent</th><td>Claude Code</td></tr>
-                       rows: Agent, Model, Skill, Date, Repository (URL, commit, "uncommitted changes" when any), Paper, Mode
+  slot:facts           <tr><th scope="row">Date</th><td>2026-11-12</td></tr>
+                       rows: Date, Written by (agent and <code>model id</code>), Skill (linked to the self-check page),
+                       Mode ("Paper and code" or "Code only"), Repository (linked: the repository page, the ref as
+                       <span class="ref">, the commit as a link to it on the forge, "uncommitted changes" as a Not
+                       settled chip), Paper (title, the DOI linked to doi.org), Material, Also not checked
 
   slot:results         <h2>Results checked</h2>
                        <div class="scroll"><table><thead><tr><th>Result</th><th>Code</th><th>Inputs</th><th>Software</th><th>Where</th></tr></thead>
-                       <tbody><tr><td>Fig 2 · title</td><td><span class="state">Met</span></td><td>…</td><td>…</td><td><code>scripts/fig2.py:40</code></td></tr></tbody></table></div>
+                       <tbody><tr><td>Fig 2 · title</td><td><span class="state met">Met</span></td><td>…</td><td>…</td><td><code>scripts/fig2.py:40</code></td></tr></tbody></table></div>
                        <p class="muted">Not checked: Fig 7 (not reached before the run stopped), …</p>
 
-  slot:reuse           <h2>Software reuse</h2> and a table: R1 Installation | <span class="state">Met</span> | note
+  slot:reuse           (empty: R1–R4 go under Technical details)
 
-  slot:requirements    <h2>Requirements</h2> and a table: <span class="tag">B2</span> The exact code version is identified | <span class="state">Not met</span> | note
+  slot:requirements    <h2>Technical details</h2>
+                       <details class="panel"><summary>Software reuse, R1–R4</summary> a table </details>   (code only)
+                       <details class="panel"><summary>Every requirement and its state</summary> a table:
+                       <span class="tag">B2</span> The exact code version is identified | <span class="state not_met">Not met</span> | note</details>
 
-  slot:findings        <h3>What L1 needs</h3>, <h3>What L2 needs</h3>, <h3>Beside the level</h3>, each with cards:
-                       <article class="finding" id="f-b2-no-cited-version">
-                         <h4><span class="tag">B2</span>The paper cites no fixed version of the code</h4>
-                         <p class="meta">Blocks L2 · Authors only · Fig 2, Fig 3</p>
-                         <p>Detail.</p>
-                         <ul><li><code>README.md:3</code><span class="quote">git clone https://github.com/…</span></li></ul>
-                         <p class="todo"><strong>To-do:</strong> Tag the submitted version, archive it with a DOI and cite that version DOI.</p>
+  slot:findings        <p class="muted">3 to-dos: 1 your coding agent can fix · 2 authors only</p>
+                       then the to-do cards, Critical first, then Important, then Recommended (each card takes the
+                       highest severity and the most demanding "who" of its findings):
+                       <article class="todo-card sev-edge-important">
+                         <div class="todo-head"><span class="sev sev-important">Important</span><h4>Cite a fixed version of the code in the paper</h4></div>
+                         <p class="why">Why, in plain words.</p>
+                         <p class="meta"><span class="who who-authors_only">Authors only</span> <span class="muted">Fig 2, Fig 3</span></p>
+                         <details class="evidence"><summary><span class="closed">Show evidence</span><span class="opened">Hide evidence</span>
+                           <span class="count">B2 · 1 finding</span></summary>
+                           <div class="evidence-body">
+                             <div class="finding" id="f-b2-no-cited-version">
+                               <p class="f-title"><span class="tag">B2</span>The paper cites the repository without a fixed version</p>
+                               <ul class="ev"><li><code>Paper, Code availability</code><span class="quote">Code: github.com/…</span></li></ul>
+                               <p class="f-fix"><span class="f-label">Suggested change</span> Tag and archive the submitted version and cite its version DOI.</p>
+                             </div>
+                           </div></details>
                        </article>
+                       Then, when findings are marked "at_submission" (B2, P2 outside a final check):
+                       <section class="later"><h2>When you submit</h2><p class="muted">Do these once …</p>
+                         <article class="todo-card later-card"> … the same card with <span class="sev sev-later">At submission</span>
+                         in place of a severity chip … </article></section>
+                       Severity by requirement: A1–A3 up to Critical; B1–B10 and R1–R4 up to Important; the rest Recommended.
 
-  slot:not_checked     <li>Integrity: whether the paper's methods, parameters and numbers agree with the code. They are compared only when a check would otherwise reach L2.</li>
 -->
 </body>
 </html>

@@ -92,7 +92,7 @@ rule train_model:
 
 *What L2 needs*
 
-**What counts.** A table or entry links each key figure, panel, table and reported number to the one script, notebook section or command that produces it.
+**What counts.** A table or entry links each key figure, panel, table and reported number to the one script, notebook section or command that computes its values (and the one that draws it, when that is separate). Plotting code is not required: the map is about which code the values come from.
 
 **What it flags.**
 

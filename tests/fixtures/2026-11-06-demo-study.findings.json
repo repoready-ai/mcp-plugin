@@ -2,32 +2,142 @@
   "format": "repoready-self-check/1",
   "skill_version": "0.1",
   "date": "2026-11-06",
-  "agent": {"name": "Claude Code", "model": "test-model-id"},
+  "agent": {
+    "name": "Claude Code",
+    "model": "test-model-id"
+  },
   "mode": "paper_and_code",
   "project": {
     "name": "Demo study <with & markup>",
     "slug": "demo-study",
-    "repositories": [{"url": "https://github.com/example/demo-study", "ref": "main", "commit": "2222222222222222222222222222222222222222", "uncommitted_changes": true, "role": "paper analysis"}],
-    "paper": {"title": "A demo study", "doi": "10.1234/demo", "read_from": "PDF from the user"},
-    "materials": [{"kind": "dataset", "name": "Raw counts", "identifier": "10.5281/zenodo.0000000", "note": "cited, not verified"}]
+    "repositories": [
+      {
+        "url": "https://github.com/example/demo-study",
+        "ref": "main",
+        "commit": "2222222222222222222222222222222222222222",
+        "uncommitted_changes": true,
+        "role": "paper analysis"
+      }
+    ],
+    "paper": {
+      "title": "A demo study",
+      "doi": "10.1234/demo",
+      "read_from": "PDF from the user"
+    },
+    "materials": [
+      {
+        "kind": "dataset",
+        "name": "Raw counts",
+        "identifier": "10.5281/zenodo.0000000",
+        "note": "cited, not verified"
+      }
+    ]
   },
-  "result": {"level": "L1", "summary": "Code, inputs and software were found for both results checked.", "next": "L2 needs a cited version of the code and a results table."},
+  "result": {
+    "summary": "Code, inputs and software were found for both results checked.",
+    "next": "Rerunning needs a cited version of the code and a results table."
+  },
   "results": [
-    {"label": "Fig 1", "title": "Overview", "checked": false, "reason": "a schematic"},
-    {"label": "Fig 2", "title": "Thresholds", "checked": true, "A1": "met", "A2": "met", "A3": "met", "code": ["analysis/fig2.py:31"]},
-    {"label": "Fig 3", "checked": true, "A1": "met", "A2": "met", "A3": "met", "code": ["analysis/fig3.R:20"]}
+    {
+      "label": "Fig 1",
+      "title": "Overview",
+      "checked": false,
+      "reason": "a schematic"
+    },
+    {
+      "label": "Fig 2",
+      "title": "Thresholds",
+      "checked": true,
+      "A1": "met",
+      "A2": "met",
+      "A3": "met",
+      "code": [
+        "analysis/fig2.py:31"
+      ]
+    },
+    {
+      "label": "Fig 3",
+      "checked": true,
+      "A1": "met",
+      "A2": "met",
+      "A3": "met",
+      "code": [
+        "analysis/fig3.R:20"
+      ]
+    }
   ],
   "requirements": [
-    {"code": "A1", "status": "met"},
-    {"code": "A2", "status": "met"},
-    {"code": "A3", "status": "met"},
-    {"code": "B2", "status": "not_met", "note": "No version cited."},
-    {"code": "B5", "status": "not_met"}
+    {
+      "code": "A1",
+      "status": "met"
+    },
+    {
+      "code": "A2",
+      "status": "met"
+    },
+    {
+      "code": "A3",
+      "status": "met"
+    },
+    {
+      "code": "B2",
+      "status": "not_met",
+      "note": "No version cited."
+    },
+    {
+      "code": "B5",
+      "status": "not_met"
+    }
   ],
   "findings": [
-    {"id": "b2-no-cited-version", "code": "B2", "impact": "blocks_l2", "title": "The paper cites the repository without a fixed version", "evidence": [{"where": "Paper, Code availability", "quote": "Code: github.com/example/demo-study"}], "results": ["Fig 2", "Fig 3"], "todo": "Tag and archive the submitted version and cite its version DOI.", "who": "authors_only"},
-    {"id": "b5-no-result-map", "code": "B5", "impact": "blocks_l2", "title": "No map from figures to scripts", "detail": "The README lists scripts but not which figure each makes.", "evidence": [{"where": "README.md:20-34", "quote": "<script> | `fig3.R`"}], "todo": "Add a Results table to the README: paper item, command, output.", "who": "agent_can_fix"},
-    {"id": "c2-no-lock", "code": "C2", "impact": "blocks_automation", "title": "No lock file", "evidence": [{"where": "requirements.txt:1"}], "todo": "Lock exact versions from a clean environment.", "who": "agent_needs_answer"}
+    {
+      "id": "b2-no-cited-version",
+      "code": "B2",
+      "title": "The paper cites the repository without a fixed version",
+      "evidence": [
+        {
+          "where": "Paper, Code availability",
+          "quote": "Code: github.com/example/demo-study"
+        }
+      ],
+      "results": [
+        "Fig 2",
+        "Fig 3"
+      ],
+      "todo": "Tag and archive the submitted version and cite its version DOI.",
+      "who": "authors_only",
+      "severity": "important"
+    },
+    {
+      "id": "b5-no-result-map",
+      "code": "B5",
+      "title": "No map from figures to scripts",
+      "detail": "The README lists scripts but not which figure each makes.",
+      "evidence": [
+        {
+          "where": "README.md:20-34",
+          "quote": "<script> | `fig3.R`"
+        }
+      ],
+      "todo": "Add a Results table to the README: paper item, command, output.",
+      "who": "agent_can_fix",
+      "severity": "important"
+    },
+    {
+      "id": "c2-no-lock",
+      "code": "C2",
+      "title": "No lock file",
+      "evidence": [
+        {
+          "where": "requirements.txt:1"
+        }
+      ],
+      "todo": "Lock exact versions from a clean environment.",
+      "who": "agent_needs_answer",
+      "severity": "recommended"
+    }
   ],
-  "not_checked": ["The R scripts' plotting themes."]
+  "not_checked": [
+    "The R scripts' plotting themes."
+  ]
 }

@@ -1,0 +1,9 @@
+  schema_version: "1.1"
+  name: code-only-tool-reuse
+  context:
+    scaffold_script: place-files.sh
+  expected_outcome: |
+    A code-only self-check of R1-R4 with no level: missing tests/CI (R3) and missing license or release
+(R4) are Important to-dos; install and usage are met; no paper search; a report is written. Test
+runs treat the RepoReady sign-in as done (funding: none) and make no RepoReady or other network
+call.

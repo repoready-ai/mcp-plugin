@@ -1,0 +1,13 @@
+plant,condition,day,area_mm2
+P1,watered,0,101
+P1,watered,7,185
+P1,watered,14,269
+P2,watered,0,102
+P2,watered,7,186
+P2,watered,14,270
+P3,drought,0,103
+P3,drought,7,159
+P3,drought,14,215
+P4,drought,0,104
+P4,drought,7,160
+P4,drought,14,216

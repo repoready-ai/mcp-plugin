@@ -17,6 +17,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills" / "reproducibility-self-check" / "SKILL.md"
 SIGNED_IN = ROOT / "skills" / "reproducibility-self-check" / "signed-in.md"
+EXTRAS = ROOT / "skills" / "reproducibility-self-check" / "signed-in-extras.md"
+CONNECT = ROOT / "skills" / "reproducibility-self-check" / "connect.md"
 COMMAND = ROOT / "commands" / "self-check.md"
 README = ROOT / "README.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
@@ -39,7 +41,7 @@ CLIENT_LINES = (
     '{ "mcpServers": { "repoready": { "url": "https://api.repoready.ai/api/mcp" } } }',
 )
 # The texts the rule is read from, and the CHANGELOG entry that announces it.
-RULE_TEXTS = (SKILL, SIGNED_IN, COMMAND, README, OFFICIAL_SKILL, PLUGIN, MARKETPLACE)
+RULE_TEXTS = (SKILL, SIGNED_IN, EXTRAS, CONNECT, COMMAND, README, OFFICIAL_SKILL, PLUGIN, MARKETPLACE)
 
 
 def flat(path):
@@ -59,7 +61,9 @@ def without_anonymisation_advice(text):
 
 
 def step_three(text):
-    return text.split("**Sign-in, before anything is read.**", 1)[1].split("**Reading the paper**", 1)[0]
+    """Step 1, item 3 of SKILL.md, followed by connect.md, which it sends the agent to when not signed in."""
+    return (text.split("**Sign-in, before anything is read.**", 1)[1].split("**Reading the paper**", 1)[0]
+            + " " + flat(CONNECT))
 
 
 class TheGateTest(unittest.TestCase):
@@ -67,16 +71,17 @@ class TheGateTest(unittest.TestCase):
         text = flat(SKILL)
         self.assertIn("3. **Sign-in, before anything is read.**", text)
         self.assertIn(GATE, step_three(text))
-        self.assertLess(text.index("Name it now and read it after item 3"), text.index(GATE))
-        self.assertLess(text.index("Do not open, fetch or extract the paper yet"), text.index(GATE))
-        self.assertLess(text.index(GATE), text.index("**Reading the paper**"))
-        self.assertLess(text.index(GATE), text.index("From a DOI, read the open full text"))
+        sends = text.index("Read `connect.md` and follow it")
+        self.assertLess(text.index("Name it now and read it after item 3"), sends)
+        self.assertLess(text.index("Do not open, fetch or extract the paper yet"), sends)
+        self.assertLess(sends, text.index("**Reading the paper**"))
+        self.assertIn("Read nothing and call nothing else until the user has answered", flat(CONNECT))
 
     def test_the_gate_applies_to_code_alone_too(self):
         step = step_three(flat(SKILL))
         self.assertIn("Every self-check needs a free RepoReady account, code alone included", step)
         self.assertIn("Do not clone or read the repository, do not open, fetch or extract the paper", step)
-        self.assertIn("never produce a level or a Reuse result", step)
+        self.assertIn("never produce a report or a to-do", step)
         self.assertNotIn("paper path", step)
         self.assertNotIn("skip this item", step)
 
@@ -101,7 +106,7 @@ class TheGateTest(unittest.TestCase):
         self.assertIsNone(offer.search(released_entry()), "CHANGELOG 2.1.0")
 
     def test_every_client_line_is_given_and_matches_the_readme(self):
-        skill, readme = flat(SKILL), flat(README)
+        skill, readme = flat(CONNECT), flat(README)
         for line in CLIENT_LINES:
             self.assertIn(line, skill)
             self.assertIn(line, readme)
@@ -115,7 +120,8 @@ class TheGateTest(unittest.TestCase):
         self.assertIn("no usage ping, no counter", text)
         self.assertIn("(`request_upload_url` is not used", text)
         self.assertIn("Whenever the paper has a public DOI or link", text)
-        self.assertIn("Sections 3 and 4 only after the user says yes to them", text)
+        self.assertIn("read it only after the user says yes to them", text)
+        self.assertIn("Never start a check without telling the user its credits and who pays", flat(EXTRAS))
 
 
 class TheScopeTest(unittest.TestCase):
@@ -162,11 +168,11 @@ class TheScopeTest(unittest.TestCase):
         description = SKILL.read_text(encoding="utf-8").split("---", 2)[1]
         self.assertIn("reproducibility or submission readiness of a codebase, a repository or a paper", description)
 
-    def test_integrity_is_compared_only_at_the_edge_of_l2(self):
+    def test_integrity_is_compared_only_when_nothing_else_is_open(self):
         text = flat(SKILL)
-        self.assertIn("compared only at the edge of L2", text)
-        comparison = text.split("**The Integrity comparison.**", 1)[1].split("## Step 7", 1)[0]
-        self.assertIn("Only when everything else for L2 holds", comparison)
+        self.assertIn("compared only when nothing else is open", text)
+        comparison = text.split("## Step 6 · The Integrity comparison", 1)[1].split("## Step 7", 1)[0]
+        self.assertIn("Only when nothing else is open", comparison)
         self.assertIn("a quote of the paper and the `file:line` of the code", comparison)
 
     def test_a_file_missing_from_a_deposit_list_is_never_not_met(self):
@@ -199,7 +205,7 @@ class ThePromisesTest(unittest.TestCase):
 
     def test_what_repoready_receives_is_stated_exactly(self):
         text = flat(SKILL)
-        self.assertEqual(text.count(RECEIVES), 2, "ground rules and 'What the account is for'")
+        self.assertEqual(text.count(RECEIVES), 1, "once, in the ground rules")
         ground_rules = text.split("## The words to use", 1)[0]
         self.assertIn(RECEIVES, ground_rules)
         self.assertIn("code, PDF, report or `findings.json`", ground_rules)
@@ -236,3 +242,55 @@ class TheReportTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NoLevelTest(unittest.TestCase):
+    def test_the_self_check_never_gives_a_level(self):
+        text = flat(SKILL)
+        self.assertIn("A self-check gives no level and no score", text)
+        for word in ("Level line", "Blocks L1", "Blocks L2", "Caps at L1", "Rerunnable", "result.level"):
+            self.assertNotIn(word, text)
+        for sev in ("**Critical**", "**Important**", "**Recommended**"):
+            self.assertIn(sev, text)
+
+
+class SelfCheckIsLocalTest(unittest.TestCase):
+    def test_versions_read_locally_are_the_agents_to_pin(self):
+        text = flat(SKILL)
+        self.assertIn("listing the packages installed in the project's environment", text)
+        b1 = text.split("- **B1**", 1)[1].split("- **B2**", 1)[0]
+        self.assertIn("the to-do is **Your coding agent can fix this**", b1)
+        self.assertIn("check that this is the environment the results were made in", b1)
+        b10 = text.split("- **B10**", 1)[1].split("**B9", 1)[0]
+        self.assertIn("a new seed would change the reported values", b10)
+
+    def test_the_final_version_waits_for_submission(self):
+        text = flat(SKILL)
+        self.assertIn("mark their findings `\"at_submission\": true`", text)
+        self.assertIn("Zenodo can reserve the DOI before the release exists", text)
+        self.assertIn("In a final check they are ordinary to-dos", text)
+
+
+class CodeDefectsTest(unittest.TestCase):
+    def test_defects_seen_while_reading_are_reported_and_agreement_is_never_assumed(self):
+        text = flat(SKILL)
+        self.assertIn("you read the code that computes each result for A1 anyway", text)
+        self.assertIn("a resampling that is not one, a correction step left out", text)
+        self.assertIn("Never tell the user that the code matches the paper's Methods unless Step 6 compared them", text)
+
+    def test_less_data_than_the_paper_describes_is_one_a2_finding(self):
+        text = flat(SKILL)
+        self.assertIn("**Less data than the paper describes.**", text)
+        self.assertIn("A2 is **Not met** for those results (Critical)", text)
+        self.assertIn("Record it once, under A2, not again under B9", text)
+
+    def test_same_day_reports_get_the_time(self):
+        self.assertIn("`<YYYY-MM-DD>-<HHMM>-<slug>`", flat(SKILL))
+
+
+class CodeOnlyReadsTheComputationTest(unittest.TestCase):
+    def test_code_only_checks_read_what_the_tool_computes(self):
+        step7 = flat(SKILL).split("## Step 7", 1)[1].split("## Step 8", 1)[0]
+        self.assertIn("**What the tool computes.**", step7)
+        self.assertIn("**Important** when the tool gives wrong numbers without an error", step7)
+        self.assertIn("it never changes R1–R4", step7)

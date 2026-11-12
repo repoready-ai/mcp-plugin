@@ -1,0 +1,12 @@
+  schema_version: "1.1"
+  name: in-progress-paper-check
+  context:
+    scaffold_script: place-files.sh
+  expected_outcome: |
+    A self-check of paper and code with no level: to-dos with severities Critical/Important/Recommended;
+the missing mask table read from /Users/anna/... is Critical (A2) and the home-folder path is
+flagged; pinning package versions is something the agent can do itself from logs/pip-
+freeze-2026-09-30.txt; citing a fixed code version (B2) is listed under 'When you submit', not as a
+to-do; the unseeded bootstrap needs the authors; an HTML and Markdown report is written; no project
+code is run. Test runs treat the RepoReady sign-in as done (funding: none) and make no RepoReady or
+other network call.

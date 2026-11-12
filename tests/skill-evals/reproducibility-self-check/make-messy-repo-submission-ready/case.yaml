@@ -1,0 +1,11 @@
+  schema_version: "1.1"
+  name: make-messy-repo-submission-ready
+  context:
+    scaffold_script: place-files.sh
+  expected_outcome: |
+    Follows the make-ready flow: sees the repository needs assembling, builds a clean submission tree in
+a new folder or branch without deleting the original, chooses analysis/fig2_v2_FINAL.py for Figure 2
+because it matches the Methods (Welch, Holm), records what was left out in an assembly note, makes
+safe fixes, asks the authors for facts it cannot know, runs the self-check on the assembled tree,
+and commits/pushes/tags nothing. Test runs treat the RepoReady sign-in as done (funding: none) and
+make no RepoReady or other network call.

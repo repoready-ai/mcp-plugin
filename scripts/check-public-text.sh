@@ -36,12 +36,13 @@ check "score-era words" '0–100|reproducibility score|free trial|trial runs|Lev
 
 # 2. The self-check's sources: written only from RepoReady's public guides.
 #    No account or pricing words, no thresholds in the instructions.
-SELF_CHECK="skills/reproducibility-self-check commands/self-check.md"
-#    The optional signed-in mode (signed-in.md) tells the credits of an
-#    official fix check by design: it is left out of the credits word here
+SELF_CHECK="skills/reproducibility-self-check commands/self-check.md commands/make-ready.md"
+#    The signed-in extras (signed-in-extras.md) tell the credits of an
+#    official fix check by design: they are left out of the credits word here
 #    and checked below for every other pricing word.
-SIGNED_IN=skills/reproducibility-self-check/signed-in.md
-ALLOW="^$SIGNED_IN:" check "self-check: account and pricing words" \
+SIGNED_IN="skills/reproducibility-self-check/signed-in.md skills/reproducibility-self-check/signed-in-extras.md"
+EXTRAS=skills/reproducibility-self-check/signed-in-extras.md
+ALLOW="^$EXTRAS:" check "self-check: account and pricing words" \
   'free trial|own (API |OpenRouter )?key|OpenRouter|(^|[^a-z])credits?([^a-z]|$)|\$[0-9]|about \$' \
   $SELF_CHECK
 check "self-check signed-in mode: no dollars, own keys or trials" \
@@ -49,7 +50,7 @@ check "self-check signed-in mode: no dollars, own keys or trials" \
   $SIGNED_IN
 check "self-check: thresholds in the instructions" \
   '[0-9]+ ?%|>= ?[0-9]|≥ ?[0-9]' \
-  skills/reproducibility-self-check/SKILL.md commands/self-check.md
+  skills/reproducibility-self-check/SKILL.md skills/reproducibility-self-check/make-ready.md commands/self-check.md commands/make-ready.md
 
 # 3. The self-check's output: the template and freshly rendered example
 #    reports never carry a badge, badge Markdown, a certification claim or a
@@ -67,8 +68,9 @@ check "self-check output: no badge, score or certification claim" \
 rm -rf "$out"
 
 # 4. A public repository: no local paths, non-production hosts or scratch
-#    folders (the guides' own example path /Users/you/data is fine).
-ALLOW='/Users/you/' check "local paths and non-production hosts" \
+#    folders (the guides' own example path /Users/you/data is fine, and so is
+#    the deliberate /Users/anna/ path the synthetic eval repos are built to flag).
+ALLOW='/Users/you/|^tests/skill-evals/[^:]*:.*/Users/anna/' check "local paths and non-production hosts" \
   '/Users/[a-z]|/private/tmp|localhost' \
   README.md CHANGELOG.md AGENTS.md CLAUDE.md skills commands docs .claude-plugin .mcp.json tests
 

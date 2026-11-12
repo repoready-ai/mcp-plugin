@@ -1,0 +1,7 @@
+[project]
+name = "stomacount"
+version = "0.3.0"
+dependencies = ["numpy>=1.26", "scikit-image>=0.22", "pandas>=2.1"]
+
+[project.scripts]
+stomacount = "stomacount.cli:main"

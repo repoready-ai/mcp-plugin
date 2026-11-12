@@ -15,8 +15,8 @@ server.
   nothing of the work. Your code, PDF, report and `findings.json` are
   never sent. Code alone gets the Software reuse result R1–R4. With a
   paper (PDF or DOI), whose public links are also sent, if it has them, to
-  find its materials: an indicative level, self-assessed and at most L2,
-  over the Materials and the workflow basics. Main-text figures and tables
+  find its materials: to-dos by severity (Critical, Important,
+  Recommended) over the Materials and the workflow basics; no level. Main-text figures and tables
   only, static reading, `file:line` evidence and a to-do per finding. With
   no paper given it looks for one, and before the audit it confirms the
   paper, code and data it will use. Paper and code are compared when a
@@ -32,13 +32,20 @@ server.
   the agent says what and, on your yes, adds it.
 - **The self-check report.** HTML (print it to PDF from your browser) and
   Markdown in `repoready-self-check/`, rendered by a standard-library
-  Python script from a documented `findings.json`. Marked "Self-check ·
-  user generated · not a RepoReady certification" in its header and
-  footer, with a SELF-CHECK watermark and grey instead of the level
-  colours; it names the agent, the model, the self-check's version (v0.1),
-  the date and the commit, and shows "Since the last self-check: n fixed ·
+  Python script from a documented `findings.json`. Under the RepoReady
+  logo and a link to the page on how the self-check works (printed pages
+  say "Self-check · user generated" in their margin), it counts the
+  to-dos by severity, leads with them in plain words (the evidence folded
+  under each), links the repository, the commit and the paper's DOI, and
+  names the agent, the model and the self-check's version (v0.1); it
+  shows "Since the last self-check: n fixed ·
   n still open · n new". Platform assessments come through institutes and
   journals.
+- **Make it submission ready.** Asked to make a codebase or paper ready,
+  the self-check sets up a working copy, assembles a clean submission
+  repository first when the code needs it, then checks, fixes, asks the
+  authors what only they know, checks again and guides the release and
+  DOI last (`make-ready.md`).
 - **The self-check, signed in.** A check with a paper finds the paper's
   materials from its public links (repositories, deposits with their file
   lists, supplements, archived links), sending only the paper's public link

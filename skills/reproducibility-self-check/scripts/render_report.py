@@ -13,9 +13,9 @@ is the newest earlier "*-<slug>.findings.json" in the same folder, unless
 
 The format is documented in ../references/findings-format.md and
 ../references/findings.schema.json. The renderer refuses a file that breaks
-the self-check's rules (a level above L2, a level that its own findings
-contradict, a finding without evidence or to-do, a status image or badge
-Markdown, a score) and says what to fix. It makes no network call.
+the self-check's rules (a level of any kind, a severity higher than its
+requirement allows, a finding without evidence or to-do, a status image or
+badge Markdown, a score) and says what to fix. It makes no network call.
 """
 
 from __future__ import annotations
@@ -28,14 +28,16 @@ import os
 import re
 import sys
 from pathlib import Path
+from urllib.parse import quote, urlparse
 
 FORMAT = "repoready-self-check/1"
 SKILL_VERSION = "0.1"
 NOTICE = "Self-check · user generated · not a RepoReady certification"
 OFFICIAL_URL = "https://repoready.ai/self-check?ref=report"
+# What a self-check reads and leaves out, explained on the website.
+ABOUT_URL = "https://repoready.ai/docs/self-check?ref=report#reads"
 NO_MODEL = "model not stated by the agent"
 
-LEVEL_NAMES = {"L0": "Incomplete", "L1": "Available", "L2": "Rerunnable"}
 
 # Public requirement names (repoready.ai/docs/checks), by code.
 REQUIREMENT_NAMES = {
@@ -71,9 +73,9 @@ REQUIREMENT_NAMES = {
 CODE_ORDER = list(REQUIREMENT_NAMES)
 
 MODES = {
-    "paper_and_code": "Paper and code: an indicative level",
-    "code_only": "Code only: the Software reuse result",
-    "analysis_code_only": "Analysis code without its paper",
+    "paper_and_code": "Paper and code",
+    "code_only": "Code only",
+    "analysis_code_only": "Code only",
 }
 STATES = {
     "met": "Met",
@@ -82,39 +84,35 @@ STATES = {
     "not_applicable": "Not applicable",
     "not_checked": "Not checked",
 }
-IMPACTS = {
-    "blocks_l1": "Blocks L1",
-    "blocks_l2": "Blocks L2",
-    "caps_l1": "Caps at L1",
-    "blocks_automation": "Blocks Automation",
-    "reuse": "Reuse",
-    "warning": "Warning",
-}
+# A self-check gives no level: each finding has a severity.
+SEVERITIES = {"critical": "Critical", "important": "Important", "recommended": "Recommended"}
+SEVERITY_RANK = ["critical", "important", "recommended"]
+# Done once the version is final: listed apart, as reminders, until a final check.
+AT_SUBMISSION_CODES = ("B2", "P2")
+
+
+def max_severity(code, mode):
+    """The highest severity a finding under this requirement may have."""
+    if mode == "paper_and_code" and code in ("A1", "A2", "A3"):
+        return "critical"
+    if (mode == "paper_and_code" and code in ("B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10")) \
+            or code in ("R1", "R2", "R3", "R4"):
+        return "important"
+    return "recommended"
+
+
 WHO = {
     "agent_can_fix": "Your coding agent can fix this",
     "agent_needs_answer": "Your agent can help · needs your answer",
     "authors_only": "Authors only",
 }
-GROUPS = [
-    ("What L1 needs", ("blocks_l1",)),
-    ("What L2 needs", ("blocks_l2", "caps_l1")),
-    ("Software reuse", ("reuse",)),
-    ("Beside the level", ("blocks_automation", "warning")),
-]
-STANDARD_NOT_CHECKED = [
-    "Integrity: whether the paper's methods, parameters, statistics and numbers agree with the code (anything noticed is marked so).",
-    "Deposits and archives: whether cited datasets and archives really hold the files the code reads.",
-    "Supplementary results: only main-text figures and tables are checked as results.",
-    "Verification by a second model: one agent read everything once.",
-    "L3 Re-executed and L4 Reproduced: the code was not run.",
-]
-# With a paper, the first two lines of the list say what was actually done.
-INTEGRITY_NOT_COMPARED = ("Integrity: whether the paper's methods, parameters, statistics and numbers agree with the "
-                          "code. They are compared only when a check would otherwise reach L2 (anything noticed is marked so).")
-INTEGRITY_COMPARED = ("A second reading of Integrity: one agent compared the paper and the code once, and values that "
-                      "exist only when the code runs could not be compared.")
-DEPOSITS_FROM_LISTS = ("Deposits and archives: only public file lists were read and matched by file name; "
-                       "the files themselves were not opened.")
+# A to-do takes the highest severity and the most demanding "who" of its findings.
+WHO_RANK = ["authors_only", "agent_needs_answer", "agent_can_fix"]
+WHO_SHORT = {
+    "agent_can_fix": ("your coding agent can fix", "your coding agent can fix"),
+    "agent_needs_answer": ("needs your answer", "need your answer"),
+    "authors_only": ("authors only", "authors only"),
+}
 # Words a self-check report never uses in its own prose (titles, details,
 # to-dos, summaries). Evidence quotes are the user's own text and are exempt.
 BANNED_PROSE = [
@@ -124,6 +122,7 @@ BANNED_PROSE = [
     (re.compile(r"certif(?:ied|icate|ication)", re.I), "a certification claim"),
     (re.compile(r"reproducibility score|\b\d{1,3} ?/ ?100\b|\b\d{1,3}(?:\.\d+)? ?% (?:reproducib|ready|complete)", re.I), "a score or percentage"),
     (re.compile(r"free trial|own (?:api )?key", re.I), "account or pricing words"),
+    (re.compile(r"\bL[0-4]\b|\b(?:Incomplete|Available|Rerunnable) level\b"), "a level (a self-check gives none)"),
 ]
 
 
@@ -262,13 +261,8 @@ def validate(data):
     if not isinstance(result, dict):
         problems.append("result: required")
         result = {}
-    level = result.get("level")
-    if level not in (None, "L0", "L1", "L2"):
-        problems.append("result.level: a self-check gives L0, L1 or L2 (never L3 or L4), or null")
-    if mode == "paper_and_code" and level is None:
-        problems.append("result.level: required in paper_and_code mode")
-    if mode != "paper_and_code" and level is not None:
-        problems.append("result.level: only a paper with its code gets a level; use null")
+    if result.get("level") is not None:
+        problems.append("result.level: a self-check gives no level; leave it out (each finding has a severity)")
     for key in ("summary", "next"):
         if key in result and not isinstance(result[key], str):
             problems.append(f"result.{key}: text")
@@ -325,7 +319,6 @@ def validate(data):
         problems.append("findings: a list")
         findings = []
     seen = set()
-    impacts = set()
     for i, f in enumerate(findings):
         where = f"findings[{i}]"
         if not isinstance(f, dict):
@@ -340,12 +333,21 @@ def validate(data):
             seen.add(fid)
         if f.get("code") not in REQUIREMENT_NAMES:
             problems.append(f"{where}.code: one of {', '.join(CODE_ORDER)}")
-        if f.get("impact") not in IMPACTS:
-            problems.append(f"{where}.impact: one of {', '.join(IMPACTS)}")
-        else:
-            impacts.add(f["impact"])
+        if f.get("severity") not in SEVERITIES:
+            problems.append(f"{where}.severity: one of {', '.join(SEVERITIES)}")
+        elif f.get("code") in REQUIREMENT_NAMES and mode in MODES:
+            top = max_severity(f["code"], mode)
+            if SEVERITY_RANK.index(f["severity"]) < SEVERITY_RANK.index(top):
+                problems.append(f"{where}.severity: a {f['code']} finding is at most {SEVERITIES[top].lower()}"
+                                + ("" if mode == "paper_and_code" else " when the code is checked without its paper"))
         if f.get("who") not in WHO:
             problems.append(f"{where}.who: one of {', '.join(WHO)}")
+        if "at_submission" in f:
+            if not isinstance(f["at_submission"], bool):
+                problems.append(f"{where}.at_submission: true or false")
+            elif f["at_submission"] and f.get("code") not in AT_SUBMISSION_CODES:
+                problems.append(f"{where}.at_submission: only {' and '.join(AT_SUBMISSION_CODES)} wait for the final "
+                                "version; every other finding is a to-do now")
         for key in ("title", "todo"):
             if not isinstance(f.get(key), str) or not f[key].strip():
                 problems.append(f"{where}.{key}: required")
@@ -367,31 +369,58 @@ def validate(data):
                 elif ev.get("quote") is not None and not isinstance(ev.get("quote"), str):
                     problems.append(f"{where}.evidence[{j}].quote: text")
 
-    # The level must follow from the findings and requirements (no leniency).
-    if mode == "paper_and_code" and level in ("L0", "L1", "L2"):
-        a_open = [c for c in ("A1", "A2", "A3") if req_status.get(c) in ("not_met", "not_settled")]
-        b_open = [c for c in ("B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B10")
-                  if req_status.get(c) in ("not_met", "not_settled")]
-        if level != "L0" and ("blocks_l1" in impacts or a_open):
-            problems.append("result.level: a Blocks L1 finding or an open A requirement means L0")
-        if "caps_l1" in impacts and req_status.get("B9") == "met":
-            problems.append("requirements: a Caps at L1 finding means B9 is not met")
-        if level == "L2":
-            if req_status.get("B9") != "met":
-                problems.append("result.level: L2 needs B9 compared for every checked result and recorded as met")
-            if impacts & {"blocks_l2", "caps_l1"} or b_open:
-                problems.append("result.level: L2 needs every B requirement met and no Blocks L2 or Caps at L1 finding")
-            missing = [c for c in ("A1", "A2", "A3", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B10")
-                       if req_status.get(c) not in ("met", "not_applicable")]
-            if missing:
-                problems.append("result.level: L2 needs A1-A3 and B1-B8, B10 each recorded as met (or not applicable): "
-                                + ", ".join(missing))
+    todos = data.get("todos")
+    if todos is not None:
+        if not isinstance(todos, list):
+            problems.append("todos: a list (or leave it out: one to-do per finding)")
+            todos = []
+        placed = {}
+        for i, td in enumerate(todos):
+            where = f"todos[{i}]"
+            if not isinstance(td, dict):
+                problems.append(f"{where}: an object")
+                continue
+            if not isinstance(td.get("title"), str) or not td["title"].strip():
+                problems.append(f"{where}.title: required (what to do, in plain words)")
+            _check_prose(td.get("title"), f"{where}.title", problems)
+            _check_text(td.get("why"), f"{where}.why", problems)
+            ids = td.get("findings")
+            if not isinstance(ids, list) or not ids or not all(isinstance(x, str) for x in ids):
+                problems.append(f"{where}.findings: the ids of the findings it covers (at least one)")
+                continue
+            for fid in ids:
+                if fid not in seen:
+                    problems.append(f"{where}.findings: no finding has the id \"{fid}\"")
+                elif fid in placed:
+                    problems.append(f"{where}.findings: \"{fid}\" is already in todos[{placed[fid]}]; a finding belongs to one to-do")
+                else:
+                    placed[fid] = i
+        for fid in sorted(seen - set(placed)):
+            problems.append(f"todos: finding \"{fid}\" is in no to-do")
+        later = {f.get("id") for f in findings if isinstance(f, dict) and f.get("at_submission") is True}
+        for i, td in enumerate(todos):
+            ids = td.get("findings") if isinstance(td, dict) else None
+            if isinstance(ids, list) and 0 < len(later & set(ids)) < len(ids):
+                problems.append(f"todos[{i}]: keep findings for when you submit apart from the to-dos of now")
+
+    # Requirements and findings agree (no leniency).
+    sev_by_code = {}
+    for f in findings:
+        if isinstance(f, dict) and f.get("severity") in SEVERITIES:
+            sev_by_code.setdefault(f.get("code"), set()).add(f["severity"])
+    if mode == "paper_and_code":
+        for code in ("A1", "A2", "A3"):
+            if req_status.get(code) in ("not_met", "not_settled") and "critical" not in sev_by_code.get(code, set()):
+                problems.append(f"findings: {code} is open, so it needs a critical finding with its to-do")
+        if req_status.get("B9") == "met" and any(
+                isinstance(f, dict) and f.get("code") == "B9" and f.get("severity") == "important" for f in findings):
+            problems.append("requirements: an important B9 finding (a contradiction) means B9 is not met")
     if isinstance(reuse, dict):
         for code in ("R1", "R2", "R3", "R4"):
             entry = reuse.get(code)
             if isinstance(entry, dict) and entry.get("status") in ("not_met", "not_settled"):
-                if not any(isinstance(f, dict) and f.get("code") == code and f.get("impact") == "reuse" for f in findings):
-                    problems.append(f"findings: {code} is open, so it needs a Reuse finding with its to-do")
+                if "important" not in sev_by_code.get(code, set()):
+                    problems.append(f"findings: {code} is open, so it needs an important finding with its to-do")
 
     extra = data.get("not_checked", [])
     if not isinstance(extra, list) or not all(isinstance(x, str) for x in extra):
@@ -407,20 +436,32 @@ def validate(data):
 # Since the last self-check
 
 
+# <YYYY-MM-DD>-<slug>.findings.json, or <YYYY-MM-DD>-<HHMM>-<slug>.findings.json for a later
+# self-check on the same day (the first of a day has no time).
+NAME_RE = re.compile(r"(\d{4}-\d{2}-\d{2})(?:-(\d{4}))?-(.+)\.findings\.json")
+
+
+def _name_key(name):
+    m = NAME_RE.fullmatch(name)
+    return (m.group(1), m.group(2) or "") if m else None
+
+
 def find_previous(path: Path, data):
     slug = data.get("project", {}).get("slug") or _slug_from_name(path.name)
-    if not slug:
+    own = _name_key(path.name)
+    if not slug or own is None:
         return None
     candidates = sorted(
-        p for p in path.parent.glob(f"*-{slug}.findings.json")
-        if p.resolve() != path.resolve() and p.name < path.name
-    )
+        (p for p in path.parent.glob(f"*-{slug}.findings.json")
+         if p.resolve() != path.resolve() and _slug_from_name(p.name) == slug
+         and _name_key(p.name) is not None and _name_key(p.name) < own),
+        key=lambda p: _name_key(p.name))
     return candidates[-1] if candidates else None
 
 
 def _slug_from_name(name):
-    m = re.fullmatch(r"\d{4}-\d{2}-\d{2}-(.+)\.findings\.json", name)
-    return m.group(1) if m else None
+    m = NAME_RE.fullmatch(name)
+    return m.group(3) if m else None
 
 
 def _match_key(f):
@@ -429,8 +470,13 @@ def _match_key(f):
 
 def compare(previous, current):
     """Return (fixed, still_open, new) lists of findings, matched by id, then by code and title."""
-    prev = [f for f in previous.get("findings", []) if isinstance(f, dict)]
-    cur = [f for f in current.get("findings", []) if isinstance(f, dict)]
+    # Reminders for when you submit are neither open nor fixed: leave them out on both sides,
+    # also a finding the earlier check listed as a to-do that is a reminder now.
+    later = [f for f in current.get("findings", []) if isinstance(f, dict) and f.get("at_submission") is True]
+    later_keys = {f.get("id") for f in later} | {_match_key(f) for f in later}
+    prev = [f for f in previous.get("findings", []) if isinstance(f, dict) and f.get("at_submission") is not True
+            and f.get("id") not in later_keys and _match_key(f) not in later_keys]
+    cur = [f for f in current.get("findings", []) if isinstance(f, dict) and f.get("at_submission") is not True]
     prev_ids = {f.get("id") for f in prev}
     cur_ids = {f.get("id") for f in cur}
     matched_prev, matched_cur = set(), set()
@@ -466,6 +512,141 @@ def _short_commit(repo):
     return commit[:12] if commit else ""
 
 
+def safe_url(text):
+    """An http(s) URL with no spaces or quotes, else None (never a javascript: or data: link)."""
+    text = str(text or "").strip()
+    m = re.fullmatch(r"git@([A-Za-z0-9.-]+):(.+?)(?:\.git)?", text)
+    if m:
+        text = f"https://{m.group(1)}/{m.group(2)}"
+    # No braces either: a link is only ever joined by concatenation, never formatted.
+    return text if re.fullmatch(r"https?://[^\s<>\"'`\\{}]+", text) else None
+
+
+def doi_url(text):
+    doi = re.sub(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", "", str(text or "").strip(), flags=re.I)
+    return "https://doi.org/" + quote(doi, safe="/:;()._-") if re.fullmatch(r"10\.\d{4,9}/\S+", doi) else None
+
+
+def repo_parts(repo):
+    """The repository as linked parts: its page, the cited ref and the commit on the forge."""
+    url = safe_url(repo.get("url"))
+    base = re.sub(r"(?:\.git)?/*$", "", url) if url else None
+    host = urlparse(base).netloc.lower() if base else ""
+    path = urlparse(base).path.strip("/") if base else ""
+    if host.endswith("github.com") or host.endswith("codeberg.org"):
+        commit_path, tree_path = "/commit/", "/tree/"
+    elif "gitlab" in host:
+        commit_path, tree_path = "/-/commit/", "/-/tree/"
+    elif host.endswith("bitbucket.org"):
+        commit_path, tree_path = "/commits/", "/src/"
+    else:
+        commit_path = tree_path = None
+    parts = []
+    name = path if commit_path and path.count("/") >= 1 else (repo.get("url") or repo.get("name") or "repository").strip()
+    parts.append(("link", name, base) if base else ("text", name))
+    ref = (repo.get("ref") or "").strip() if isinstance(repo.get("ref"), str) else ""
+    if ref:
+        parts.append(("chip-link", ref, base + tree_path + quote(ref, safe="") if tree_path else None))
+    commit = str(repo.get("commit") or "").strip()
+    if commit:
+        parts.append(("code-link", "commit " + commit[:12], base + commit_path + quote(commit, safe="") if commit_path else None))
+    else:
+        parts.append(("muted", "no commit recorded"))
+    if repo.get("uncommitted_changes"):
+        parts.append(("warn", "uncommitted changes"))
+    if isinstance(repo.get("role"), str) and repo["role"].strip():
+        parts.append(("muted", repo["role"].strip()))
+    return parts
+
+
+def parts_html(parts):
+    out = []
+    for part in parts:
+        kind, text = part[0], part[1]
+        url = part[2] if len(part) > 2 else None
+        if kind == "link" and url:
+            out.append(f'<a href="{e(url)}">{e(text)}</a>')
+        elif kind == "chip-link":
+            inner = f'<a href="{e(url)}">{e(text)}</a>' if url else e(text)
+            out.append(f'<span class="ref">{inner}</span>')
+        elif kind == "code-link":
+            inner = f'<a href="{e(url)}"><code>{e(text)}</code></a>' if url else f"<code>{e(text)}</code>"
+            out.append(inner)
+        elif kind == "code":
+            out.append(f"<code>{e(text)}</code>")
+        elif kind == "warn":
+            out.append(f'<span class="state not_settled">{e(text)}</span>')
+        elif kind == "muted":
+            out.append(f'<span class="muted">{e(text)}</span>')
+        else:
+            out.append(e(text))
+    return " · ".join(out)
+
+
+def parts_md(parts):
+    out = []
+    for part in parts:
+        kind, text = part[0], part[1]
+        url = part[2] if len(part) > 2 else None
+        if url:
+            label = md_code(text, in_table=True) if kind == "code-link" else md(text)
+            out.append(f"[{label}](<{url}>)")
+        elif kind in ("code-link", "code"):
+            out.append(md_code(text, in_table=True))
+        elif kind == "warn":
+            out.append("**" + md(text) + "**")
+        else:
+            out.append(md(text))
+    return " · ".join(out)
+
+
+def _code_key(f):
+    return CODE_ORDER.index(f["code"]) if f.get("code") in CODE_ORDER else 99
+
+
+def build_todo_groups(data, findings):
+    """The plain-language to-dos, each over the technical findings it covers, grouped by severity.
+
+    Without a "todos" list every finding is its own to-do: its to-do text is the title.
+    """
+    by_id = {f.get("id"): f for f in findings}
+    raw = data.get("todos")
+    todos = []
+    if isinstance(raw, list) and raw:
+        for td in raw:
+            items = [by_id[x] for x in td["findings"] if x in by_id]
+            todos.append({"title": td["title"].strip(), "why": (td.get("why") or "").strip(), "findings": items})
+    else:
+        for f in findings:
+            todos.append({"title": f["todo"].strip(), "why": f["title"].strip(), "findings": [f]})
+    for td in todos:
+        td["findings"].sort(key=_code_key)
+        td["severity"] = min((f["severity"] for f in td["findings"]), key=SEVERITY_RANK.index)
+        td["who"] = min((f["who"] for f in td["findings"]), key=WHO_RANK.index)
+        codes, results = [], []
+        for f in td["findings"]:
+            if f["code"] not in codes:
+                codes.append(f["code"])
+            for r in f.get("results") or []:
+                if r not in results:
+                    results.append(r)
+        order = [r.get("label") for r in data.get("results", []) if isinstance(r, dict)]
+        results.sort(key=lambda r: order.index(r) if r in order else len(order))
+        td["codes"], td["results"] = codes, results
+        td["noticed_only"] = all(f.get("noticed_only") for f in td["findings"])
+    later = [td for td in todos if all(f.get("at_submission") is True for f in td["findings"])]
+    todos = [td for td in todos if td not in later]
+    later.sort(key=lambda td: _code_key(td["findings"][0]))
+    groups = []
+    for sev in SEVERITY_RANK:
+        items = [td for td in todos if td["severity"] == sev]
+        if items:
+            # Steps your agent can take first, then answers, then the authors'.
+            items.sort(key=lambda td: (-WHO_RANK.index(td["who"]), _code_key(td["findings"][0])))
+            groups.append((sev, items))
+    return groups, later
+
+
 def build(data, previous=None, previous_name=None):
     agent = data["agent"]
     model = agent.get("model")
@@ -484,43 +665,18 @@ def build(data, previous=None, previous_name=None):
     if isinstance(result.get("reuse"), dict):
         # R1-R4 have their own table; do not print them twice.
         requirements = [r for r in requirements if r.get("code") not in ("R1", "R2", "R3", "R4")]
-    level_codes = ("A1", "A2", "A3", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10")
-    unsettled = sum(1 for r in requirements if r.get("code") in level_codes and r.get("status") == "not_settled")
-    a_not_met = any(r.get("code") in ("A1", "A2", "A3") and r.get("status") == "not_met" for r in requirements) or any(
-        r.get(k) == "not_met" for r in checked for k in ("A1", "A2", "A3"))
-    a_unsettled = sum(1 for r in requirements if r.get("code") in ("A1", "A2", "A3") and r.get("status") == "not_settled")
-
     reuse = result.get("reuse") if isinstance(result.get("reuse"), dict) else None
-    reuse_line = ""
-    if reuse:
-        met = sum(1 for c in ("R1", "R2", "R3", "R4") if (reuse.get(c) or {}).get("status") == "met")
-        reuse_line = "Reusable" if met == 4 else f"Reuse: {met} of 4"
-
     if mode == "paper_and_code":
-        level = result["level"]
-        if level == "L0" and not a_not_met and a_unsettled:
-            # Nothing is confirmed missing: L0 would overstate it.
-            result_line = f"Self-assessed · not yet at L1 · {a_unsettled} to verify · indicative, at most L2"
-        else:
-            result_line = f"Self-assessed · {level} · {LEVEL_NAMES[level]} · indicative, at most L2"
-            # Only what holds this level back: A items for L0, B items for L1.
-            held = a_unsettled if level == "L0" else (unsettled - a_unsettled if level == "L1" else 0)
-            if held:
-                result_line += f" · {held} not settled"
         total = len(results)
-        scope_line = (f"For {len(checked)} of {total} main-text results checked, read statically in your own agent."
-                      if total else "Read statically in your own agent.")
-        if reuse_line:
-            scope_line += f" Software reuse beside the level: {reuse_line}."
+        scope_line = (f"{len(checked)} of {total} main-text results checked, read statically in your own agent"
+                      if total else "Read statically in your own agent")
     elif mode == "code_only":
-        result_line = f"Self-assessed · {reuse_line} · Software reuse, no level for code alone"
-        scope_line = "Code checked on its own gets no level; its answer is the Software reuse result R1–R4."
+        scope_line = "The code on its own, as a tool others install and use, read statically in your own agent"
     else:
-        result_line = "No level · add the paper"
-        scope_line = "Analysis code without its paper gets no level. Run the self-check again with the paper (a PDF or DOI)."
+        scope_line = ("Analysis code without its paper; run the self-check again with the paper "
+                      "(a PDF or DOI) to check the code behind each result")
 
-    since_line = "First self-check of this project in this folder."
-    since_fixed = []
+    since_line = "This is the first self-check of this project in this folder."
     if previous is not None:
         fixed, still, new = compare(previous, data)
         prev_date = previous.get("date", "")
@@ -528,56 +684,62 @@ def build(data, previous=None, previous_name=None):
         prev_repos = previous.get("project", {}).get("repositories") or []
         if prev_repos and isinstance(prev_repos[0], dict):
             prev_commit = _short_commit(prev_repos[0])
-        when = prev_date + (f", commit {prev_commit}" if prev_commit else "")
-        since_line = (f"Since the last self-check ({when}): {len(fixed)} fixed · "
-                      f"{len(still)} still open · {len(new)} new")
-        since_fixed = [f"{f.get('code', '')} · {f.get('title', '')}" for f in fixed]
+        when = (f"on {prev_date}" if prev_date else "") + (f" (commit {prev_commit})" if prev_commit else "")
+        since_line = (f"Compared with the last self-check {when}".rstrip() + ": "
+                      f"{len(fixed)} finding{'' if len(fixed) == 1 else 's'} fixed, "
+                      f"{len(still)} still open and {len(new)} new.")
 
-    repos = project.get("repositories") or []
-    commit_bits = []
-    for repo in repos:
-        if not isinstance(repo, dict):
-            continue
-        bit = repo.get("url") or repo.get("name") or "repository"
-        if repo.get("ref"):
-            bit += f" ({repo['ref']})"
-        if _short_commit(repo):
-            bit += f" at commit {_short_commit(repo)}"
-        if repo.get("uncommitted_changes"):
-            bit += ", with uncommitted changes"
-        commit_bits.append(bit)
-    commit_text = "; ".join(commit_bits) if commit_bits else "no commit recorded"
-
-    facts = [("Agent", agent["name"].strip()), ("Model", model_text),
-             ("Skill", f"RepoReady self-check v{SKILL_VERSION}"),
-             ("Date", data["date"]), ("Mode", MODES[mode])]
-    for repo_text in commit_bits:
-        facts.append(("Repository", repo_text))
+    facts = [("Date", [("text", data["date"])]),
+             ("Written by", [("text", agent["name"].strip()), ("muted" if model_text == NO_MODEL else "code", model_text)]),
+             ("Skill", [("link", f"RepoReady self-check v{SKILL_VERSION}", ABOUT_URL)]),
+             ("Mode", [("text", MODES[mode])]),
+             ("Scope", [("text", scope_line)])]
+    for repo in project.get("repositories") or []:
+        if isinstance(repo, dict):
+            facts.append(("Repository", repo_parts(repo)))
     paper = project.get("paper")
     if isinstance(paper, dict):
-        bits = [paper.get("title") or "", ("DOI " + paper["doi"]) if paper.get("doi") else "", paper.get("read_from") or ""]
-        facts.append(("Paper", " · ".join(b for b in bits if b)))
+        parts = []
+        if paper.get("title"):
+            parts.append(("text", paper["title"].strip()))
+        if paper.get("doi"):
+            url = doi_url(paper["doi"])
+            parts.append(("link", "DOI " + paper["doi"].strip(), url) if url else ("text", "DOI " + paper["doi"].strip()))
+        if paper.get("read_from"):
+            parts.append(("muted", paper["read_from"].strip()))
+        facts.append(("Paper", parts))
     for m in project.get("materials") or []:
         if isinstance(m, dict) and (m.get("name") or m.get("identifier")):
-            bits = [m.get("kind") or "", m.get("name") or "", m.get("identifier") or "", m.get("note") or ""]
-            facts.append(("Material", " · ".join(b for b in bits if b)))
+            parts = [("text", x.strip()) for x in (m.get("kind"), m.get("name")) if isinstance(x, str) and x.strip()]
+            ident = (m.get("identifier") or "").strip()
+            if ident:
+                url = doi_url(ident) or safe_url(ident)
+                parts.append(("link", ident, url) if url else ("text", ident))
+            if isinstance(m.get("note"), str) and m["note"].strip():
+                parts.append(("muted", m["note"].strip()))
+            facts.append(("Material", parts))
+    extra = [x.strip().rstrip(".;").strip() for x in data.get("not_checked", []) if isinstance(x, str) and x.strip()]
+    if extra:
+        facts.append(("Also not checked", [("text", "; ".join(extra))]))
 
-    groups = []
-    for title, impacts in GROUPS:
-        items = [f for f in findings if f.get("impact") in impacts]
-        if items:
-            items.sort(key=lambda f: (CODE_ORDER.index(f["code"]) if f.get("code") in CODE_ORDER else 99))
-            groups.append((title, items))
-
-    not_checked = list(STANDARD_NOT_CHECKED)
-    if mode == "paper_and_code":
-        b9 = next((r.get("status") for r in requirements if r.get("code") == "B9"), None)
-        compared = b9 in ("met", "not_settled") or (b9 == "not_met" and any(
-            f.get("impact") == "caps_l1" and not f.get("noticed_only") for f in findings))
-        not_checked[:2] = [INTEGRITY_COMPARED if compared else INTEGRITY_NOT_COMPARED, DEPOSITS_FROM_LISTS]
+    groups, later = build_todo_groups(data, findings)
+    todo_total = sum(len(items) for _, items in groups)
+    if todo_total:
+        result_line = f"Self-check · {todo_total} to-do{'s' if todo_total != 1 else ''} · " + " · ".join(
+            f"{len(items)} {SEVERITIES[sev].lower()}" for sev, items in groups)
     else:
-        not_checked = [x for x in not_checked if not x.startswith("Supplementary results")]
-    not_checked += [x for x in data.get("not_checked", []) if isinstance(x, str) and x.strip()]
+        result_line = "Self-check · nothing to do for what was checked"
+    if later:
+        result_line += f" · {len(later)} when you submit"
+    severity_counts = [(sev, len(items)) for sev, items in groups]
+    by_who = {}
+    for _, items in groups:
+        for td in items:
+            by_who[td["who"]] = by_who.get(td["who"], 0) + 1
+    todo_line = ""
+    if todo_total:
+        parts = [f"{by_who[w]} {WHO_SHORT[w][by_who[w] != 1]}" for w in reversed(WHO_RANK) if by_who.get(w)]
+        todo_line = f"{todo_total} to-do{'s' if todo_total != 1 else ''}: " + " · ".join(parts)
 
     return {
         "project_name": project["name"].strip(),
@@ -589,17 +751,16 @@ def build(data, previous=None, previous_name=None):
         "result_line": result_line,
         "scope_line": scope_line,
         "summary": (result.get("summary") or "").strip(),
-        "next_line": (result.get("next") or "").strip(),
         "since_line": since_line,
-        "since_fixed": since_fixed,
         "facts": facts,
         "checked": checked,
         "unchecked": unchecked,
         "reuse": reuse,
         "requirements": requirements,
         "groups": groups,
-        "not_checked": not_checked,
-        "commit_text": commit_text,
+        "later": later,
+        "todo_line": todo_line,
+        "severity_counts": severity_counts,
         "mode": mode,
         "previous_name": previous_name,
     }
@@ -614,19 +775,43 @@ def e(text):
 
 
 def _state(status):
-    return f'<span class="state">{e(STATES.get(status, status or "—"))}</span>' if status else "—"
+    if not status:
+        return "—"
+    css = f"state {status}" if status in STATES else "state"
+    return f'<span class="{css}">{e(STATES.get(status, status))}</span>'
 
 
 def _where_html(where):
     return f"<code>{e(where)}</code>"
 
 
+def _finding_html(f):
+    """One technical finding inside a to-do's evidence panel: what was seen, where, and the change it suggests."""
+    evidence = []
+    for ev in f["evidence"]:
+        quote = f'<span class="quote">{e(ev["quote"])}</span>' if ev.get("quote") else ""
+        evidence.append(f"<li>{_where_html(ev['where'])}{quote}</li>")
+    detail = f'<p class="f-detail">{e(f["detail"])}</p>' if f.get("detail") else ""
+    extra = []
+    if f.get("results"):
+        extra.append(", ".join(str(x) for x in f["results"]))
+    if f.get("noticed_only"):
+        extra.append("noticed, not searched for")
+    extra_html = f' <span class="muted">· {e(" · ".join(extra))}</span>' if extra else ""
+    return (f'<div class="finding" id="f-{e(f["id"])}">'
+            f'<p class="f-title"><span class="tag">{e(f["code"])}</span>{e(f["title"])}{extra_html}</p>{detail}'
+            f'<ul class="ev">{"".join(evidence)}</ul>'
+            f'<p class="f-fix"><span class="f-label">Suggested change</span> {e(f["todo"])}</p></div>')
+
+
+def _sev_chip(sev):
+    return f'<span class="sev sev-{e(sev)}">{e(SEVERITIES[sev])}</span>'
+
+
 def render_html(model, template):
     slots = {}
-    slots["since_details"] = (
-        '<p class="muted">Fixed: ' + e("; ".join(model["since_fixed"])) + "</p>" if model["since_fixed"] else "")
     slots["facts"] = "\n      ".join(
-        f'<tr><th scope="row">{e(k)}</th><td>{e(v)}</td></tr>' for k, v in model["facts"])
+        f'<tr><th scope="row">{e(k)}</th><td>{parts_html(v)}</td></tr>' for k, v in model["facts"])
 
     if model["mode"] == "paper_and_code" and (model["checked"] or model["unchecked"]):
         rows = []
@@ -647,52 +832,70 @@ def render_html(model, template):
     else:
         slots["results"] = ""
 
+    tech = []
     if model["reuse"]:
         rows = []
         for code in ("R1", "R2", "R3", "R4"):
             entry = model["reuse"].get(code) or {}
             rows.append(f'<tr><td><span class="tag">{code}</span>{e(REQUIREMENT_NAMES[code])}</td>'
                         f"<td>{_state(entry.get('status'))}</td><td>{e(entry.get('note') or '')}</td></tr>")
-        slots["reuse"] = ('<h2>Software reuse</h2>\n  <div class="scroll"><table><thead><tr><th>Requirement</th>'
-                          '<th>State</th><th>Note</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>")
-    else:
-        slots["reuse"] = ""
-
+        tech.append('<details class="panel"><summary>Software reuse, R1–R4</summary><div class="scroll"><table><thead><tr>'
+                    '<th>Requirement</th><th>State</th><th>Note</th></tr></thead><tbody>' + "".join(rows)
+                    + "</tbody></table></div></details>")
     if model["requirements"]:
         rows = [f'<tr><td><span class="tag">{e(r["code"])}</span>{e(REQUIREMENT_NAMES[r["code"]])}</td>'
                 f"<td>{_state(r.get('status'))}</td><td>{e(r.get('note') or '')}</td></tr>"
                 for r in model["requirements"]]
-        slots["requirements"] = ('<h2>Requirements</h2>\n  <div class="scroll"><table><thead><tr><th>Requirement</th>'
-                                 '<th>State</th><th>Note</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>")
-    else:
-        slots["requirements"] = ""
+        tech.append('<details class="panel"><summary>Every requirement and its state</summary><div class="scroll"><table>'
+                    '<thead><tr><th>Requirement</th><th>State</th><th>Note</th></tr></thead><tbody>' + "".join(rows)
+                    + "</tbody></table></div></details>")
+    slots["reuse"] = ""
+    slots["requirements"] = ("<h2>Technical details</h2>\n  " + "\n  ".join(tech)) if tech else ""
 
-    if model["groups"]:
+    if model["groups"] or model["later"]:
         parts = []
-        for title, items in model["groups"]:
-            parts.append(f"<h3>{e(title)}</h3>")
-            for f in items:
-                meta = [IMPACTS[f["impact"]], WHO[f["who"]]]
-                if f.get("results"):
-                    meta.append(", ".join(str(x) for x in f["results"]))
-                if f.get("noticed_only"):
-                    meta.append("noticed, not searched for")
-                evidence = []
-                for ev in f["evidence"]:
-                    quote = f'<span class="quote">{e(ev["quote"])}</span>' if ev.get("quote") else ""
-                    evidence.append(f"<li>{_where_html(ev['where'])}{quote}</li>")
-                detail = f"<p>{e(f['detail'])}</p>" if f.get("detail") else ""
+        if model["todo_line"]:
+            parts.append(f'<p class="muted">{e(model["todo_line"])}</p>')
+        for sev, items in model["groups"]:
+            for td in items:
+                meta = [f'<span class="who who-{e(td["who"])}">{e(WHO[td["who"]])}</span>']
+                if td["results"]:
+                    meta.append(f'<span class="muted">{e(", ".join(str(x) for x in td["results"]))}</span>')
+                if td["noticed_only"]:
+                    meta.append('<span class="muted">noticed, not searched for</span>')
+                why = f'<p class="why">{e(td["why"])}</p>' if td["why"] else ""
+                n = len(td["findings"])
+                codes = ", ".join(td["codes"])
+                details = "".join(_finding_html(f) for f in td["findings"])
                 parts.append(
-                    f'<article class="finding" id="f-{e(f["id"])}">'
-                    f'<h4><span class="tag">{e(f["code"])}</span>{e(f["title"])}</h4>'
-                    f'<p class="meta">{e(" · ".join(meta))}</p>{detail}'
-                    f'<ul>{"".join(evidence)}</ul>'
-                    f'<p class="todo"><strong>To-do:</strong> {e(f["todo"])}</p></article>')
+                    f'<article class="todo-card sev-edge-{e(sev)}">'
+                    f'<div class="todo-head">{_sev_chip(sev)}<h4>{e(td["title"])}</h4></div>'
+                    f'{why}<p class="meta">{" ".join(meta)}</p>'
+                    f'<details class="evidence"><summary>'
+                    f'<span class="closed">Show evidence</span><span class="opened">Hide evidence</span>'
+                    f'<span class="count">{e(codes)} · {n} finding{"s" if n != 1 else ""}</span></summary>'
+                    f'<div class="evidence-body">{details}</div></details></article>')
+        if not model["groups"]:
+            parts.append("<p>Nothing to do now for what was checked.</p>")
+        if model["later"]:
+            parts.append('<section class="later" aria-label="When you submit"><h2>When you submit</h2>'
+                         '<p class="muted">Do these once the version you submit is final: every commit before then '
+                         'changes it. A final self-check counts them as to-dos.</p>')
+            for td in model["later"]:
+                n = len(td["findings"])
+                why = f'<p class="why">{e(td["why"])}</p>' if td["why"] else ""
+                details = "".join(_finding_html(f) for f in td["findings"])
+                parts.append(
+                    f'<article class="todo-card later-card"><div class="todo-head"><span class="sev sev-later">At submission</span>'
+                    f'<h4>{e(td["title"])}</h4></div>{why}'
+                    f'<details class="evidence"><summary>'
+                    f'<span class="closed">Show evidence</span><span class="opened">Hide evidence</span>'
+                    f'<span class="count">{e(", ".join(td["codes"]))} · {n} finding{"s" if n != 1 else ""}</span></summary>'
+                    f'<div class="evidence-body">{details}</div></details></article>')
+            parts.append("</section>")
         slots["findings"] = "\n  ".join(parts)
     else:
-        slots["findings"] = "<p>No findings were recorded for the results checked.</p>"
-
-    slots["not_checked"] = "\n    ".join(f"<li>{e(x)}</li>" for x in model["not_checked"])
+        slots["findings"] = "<p>No findings were recorded for what was checked.</p>"
 
     # Drop the hand-filling notes from the template, then fill it in one pass,
     # so inserted text is never scanned for placeholders again. Every scalar is
@@ -700,7 +903,7 @@ def render_html(model, template):
     template = re.sub(r"<!--\s*\n\s*RepoReady self-check report template.*?-->\n", "", template, count=1, flags=re.S)
     template = re.sub(r"<!--\s*\n\s*Example markup for the slots.*?-->\n", "", template, count=1, flags=re.S)
     scalars = ("project_name", "date", "agent_name", "model_text", "skill_version",
-               "result_line", "scope_line", "summary", "next_line", "since_line", "commit_text")
+               "summary", "since_line")
     missing = []
 
     def fill(match):
@@ -752,27 +955,44 @@ def md_code(text, in_table=False):
     return f"{fence}{pad}{text}{pad}{fence}"
 
 
+def _md_anchor(f):
+    return "f-" + re.sub(r"[^a-z0-9-]+", "-", str(f["id"]).lower()).strip("-")
+
+
 def render_markdown(model):
     L = []
-    L.append(f"> **SELF-CHECK** · {NOTICE}")
+    L.append(f"[**RepoReady**]({OFFICIAL_URL}) · [How the self-check works]({ABOUT_URL})")
     L.append("")
     L.append(f"# {md(model['project_name'])}")
     L.append("")
-    L.append(f"Reproducibility self-check of {md(model['date'])} · written by {md(model['agent_name'])} "
-             f"({md(model['model_text'])}) with the RepoReady self-check skill {md('v' + model['skill_version'])}")
-    L.append("")
-    L.append(f"**{md(model['result_line'])}**")
-    L.append("")
-    L.append(md(model["scope_line"]))
     if model["summary"]:
-        L += ["", md(model["summary"])]
-    if model["next_line"]:
-        L += ["", md(model["next_line"])]
-    L += ["", f"**{md(model['since_line'])}**"]
-    if model["since_fixed"]:
-        L += ["", "Fixed: " + md("; ".join(model["since_fixed"]))]
-    L += ["", "## About this self-check", "", "| | |", "|---|---|"]
-    L += [f"| {md(k)} | {md(v)} |" for k, v in model["facts"]]
+        L += [f"**{md(model['summary'])}**", ""]
+    L += [md(model["since_line"])]
+    L += ["", "## To-dos"]
+    if not model["groups"]:
+        L += ["", "Nothing to do now for what was checked."]
+    elif model["todo_line"]:
+        L += ["", md(model["todo_line"])]
+    for sev, items in model["groups"]:
+        for td in items:
+            meta = [SEVERITIES[sev], WHO[td["who"]]]
+            if td["results"]:
+                meta.append(", ".join(str(x) for x in td["results"]))
+            if td["noticed_only"]:
+                meta.append("noticed, not searched for")
+            L += ["", f"- [ ] **{md(td['title'])}**  ", "  *" + md(" · ".join(meta)) + "*"]
+            if td["why"]:
+                L += ["  " + md(td["why"])]
+            L += ["  Evidence: " + ", ".join(f"[{f['code']} · {md(f['title'])}](#{_md_anchor(f)})" for f in td["findings"])]
+    if model["later"]:
+        L += ["", "## When you submit", "",
+              "*Do these once the version you submit is final: every commit before then changes it. "
+              "A final self-check counts them as to-dos.*"]
+        for td in model["later"]:
+            L += ["", f"- [ ] **{md(td['title'])}**  "]
+            if td["why"]:
+                L += ["  " + md(td["why"])]
+            L += ["  Evidence: " + ", ".join(f"[{f['code']} · {md(f['title'])}](#{_md_anchor(f)})" for f in td["findings"])]
 
     if model["mode"] == "paper_and_code" and (model["checked"] or model["unchecked"]):
         L += ["", "## Results checked", ""]
@@ -789,50 +1009,47 @@ def render_markdown(model):
             items = "; ".join(r["label"] + (f" ({r['reason']})" if r.get("reason") else "") for r in model["unchecked"])
             L += ["", "Not checked: " + md(items)]
 
+    L += ["", "## About this self-check", "", "| | |", "|---|---|"]
+    L += [f"| {md(k)} | {parts_md(v)} |" for k, v in model["facts"]]
+
+    if model["requirements"] or model["reuse"] or model["groups"] or model["later"]:
+        L += ["", "## Technical details"]
     if model["reuse"]:
-        L += ["", "## Software reuse", "", "| Requirement | State | Note |", "|---|---|---|"]
+        L += ["", "### Software reuse, R1–R4", "", "| Requirement | State | Note |", "|---|---|---|"]
         for code in ("R1", "R2", "R3", "R4"):
             entry = model["reuse"].get(code) or {}
             L.append(f"| {code} · {md(REQUIREMENT_NAMES[code])} | {STATES.get(entry.get('status'), '—')} | "
                      f"{md(entry.get('note') or '')} |")
-
     if model["requirements"]:
-        L += ["", "## Requirements", "", "| Requirement | State | Note |", "|---|---|---|"]
+        L += ["", "### Every requirement and its state", "",
+              "| Requirement | State | Note |", "|---|---|---|"]
         for r in model["requirements"]:
             L.append(f"| {r['code']} · {md(REQUIREMENT_NAMES[r['code']])} | {STATES.get(r.get('status'), '—')} | "
                      f"{md(r.get('note') or '')} |")
 
-    L += ["", "## To-dos"]
-    if not model["groups"]:
-        L += ["", "No findings were recorded for the results checked."]
-    for title, items in model["groups"]:
-        L += ["", f"### {title}"]
-        for f in items:
-            meta = [IMPACTS[f["impact"]], WHO[f["who"]]]
-            if f.get("results"):
-                meta.append(", ".join(str(x) for x in f["results"]))
-            if f.get("noticed_only"):
-                meta.append("noticed, not searched for")
-            L += ["", f"#### {f['code']} · {md(f['title'])}", "", "*" + md(" · ".join(meta)) + "*"]
-            if f.get("detail"):
-                L += ["", md(f["detail"])]
-            L.append("")
-            for ev in f["evidence"]:
-                line = f"- {md_code(ev['where'])}"
-                if ev.get("quote"):
-                    line += f": {md_code(ev['quote'])}"
-                L.append(line)
-            L += ["", f"**To-do:** {md(f['todo'])}"]
+    if model["groups"] or model["later"]:
+        L += ["", "### The evidence behind the to-dos"]
+        for td_list in [items for _, items in model["groups"]] + [model["later"]]:
+            for td in td_list:
+                for f in td["findings"]:
+                    meta = [WHO[f["who"]]]
+                    if f.get("results"):
+                        meta.append(", ".join(str(x) for x in f["results"]))
+                    if f.get("noticed_only"):
+                        meta.append("noticed, not searched for")
+                    L += ["", f'<a id="{_md_anchor(f)}"></a>', "",
+                          f"#### {f['code']} · {md(f['title'])}", "", "*" + md(" · ".join(meta)) + "*"]
+                    if f.get("detail"):
+                        L += ["", md(f["detail"])]
+                    L.append("")
+                    for ev in f["evidence"]:
+                        line = f"- {md_code(ev['where'])}"
+                        if ev.get("quote"):
+                            line += f": {md_code(ev['quote'])}"
+                        L.append(line)
+                    L += ["", f"Suggested change: {md(f['todo'])}"]
 
-    L += ["", "## Not checked", "", "A self-check reads the code and the paper once, in your own agent. It does not cover:", ""]
-    L += [f"- {md(x)}" for x in model["not_checked"]]
-    L += ["", "---", "", f"> **SELF-CHECK** · {NOTICE}", ">",
-          f"> Written by {md(model['agent_name'])} ({md(model['model_text'])}) with the RepoReady self-check skill "
-          f"{md('v' + model['skill_version'])} (from RepoReady's public guides) on {md(model['date'])}, "
-          f"at {md(model['commit_text'])}. The level is self-assessed and indicative, at most L2. Nothing was sent to RepoReady.",
-          ">",
-          f"> RepoReady Platform assessments, whose levels and share links count, come through institutes and journals: {OFFICIAL_URL}",
-          ""]
+    L.append("")
     return "\n".join(L)
 
 

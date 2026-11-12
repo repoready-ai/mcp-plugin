@@ -2,47 +2,122 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/repoready-ai/mcp-plugin/blob/main/skills/reproducibility-self-check/references/findings.schema.json",
   "title": "RepoReady self-check findings (format repoready-self-check/1)",
-  "description": "What the self-check skill writes and scripts/render_report.py renders. The renderer also enforces the rules in findings-format.md that a schema cannot express (the level follows the findings; no badge, score or level above L2 in the agent's own words).",
+  "description": "What the self-check skill writes and scripts/render_report.py renders. The renderer also enforces the rules in findings-format.md that a schema cannot express (no level of any kind; a severity no higher than its requirement allows; no badge or score in the agent's own words).",
   "type": "object",
-  "required": ["format", "skill_version", "date", "agent", "mode", "project", "result", "requirements", "findings"],
+  "required": [
+    "format",
+    "skill_version",
+    "date",
+    "agent",
+    "mode",
+    "project",
+    "result",
+    "requirements",
+    "findings"
+  ],
   "properties": {
-    "format": {"const": "repoready-self-check/1"},
-    "skill_version": {"type": "string", "pattern": "^\\d+(\\.\\d+){0,2}$", "description": "The self-check skill's version, \"0.1\". The report prints the renderer's own version."},
-    "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "format": {
+      "const": "repoready-self-check/1"
+    },
+    "skill_version": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d+){0,2}$",
+      "description": "The self-check skill's version, \"0.1\". The report prints the renderer's own version."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
     "agent": {
       "type": "object",
-      "required": ["name", "model"],
+      "required": [
+        "name",
+        "model"
+      ],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "model": {"type": ["string", "null"], "description": "The exact model id the agent's system states, or null: the report then says 'model not stated by the agent'."}
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The exact model id the agent's system states, or null: the report then says 'model not stated by the agent'."
+        }
       }
     },
-    "mode": {"enum": ["paper_and_code", "code_only", "analysis_code_only"]},
+    "mode": {
+      "enum": [
+        "paper_and_code",
+        "code_only",
+        "analysis_code_only"
+      ]
+    },
     "project": {
       "type": "object",
-      "required": ["name", "slug", "repositories"],
+      "required": [
+        "name",
+        "slug",
+        "repositories"
+      ],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "slug": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
         "repositories": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "url": {"type": "string"},
-              "ref": {"type": ["string", "null"]},
-              "commit": {"type": ["string", "null"]},
-              "uncommitted_changes": {"type": "boolean"},
-              "role": {"type": "string"}
+              "url": {
+                "type": "string"
+              },
+              "ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "commit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "uncommitted_changes": {
+                "type": "boolean"
+              },
+              "role": {
+                "type": "string"
+              }
             }
           }
         },
         "paper": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "title": {"type": "string"},
-            "doi": {"type": ["string", "null"]},
-            "read_from": {"type": "string"}
+            "title": {
+              "type": "string"
+            },
+            "doi": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "read_from": {
+              "type": "string"
+            }
           }
         },
         "materials": {
@@ -50,10 +125,21 @@
           "items": {
             "type": "object",
             "properties": {
-              "kind": {"type": "string"},
-              "name": {"type": "string"},
-              "identifier": {"type": ["string", "null"]},
-              "note": {"type": "string"}
+              "kind": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "identifier": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "note": {
+                "type": "string"
+              }
             }
           }
         }
@@ -61,37 +147,76 @@
     },
     "result": {
       "type": "object",
-      "required": ["level", "summary"],
+      "required": [
+        "summary"
+      ],
       "properties": {
-        "level": {"enum": ["L0", "L1", "L2", null]},
         "reuse": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "R1": {"$ref": "#/$defs/reuseEntry"},
-            "R2": {"$ref": "#/$defs/reuseEntry"},
-            "R3": {"$ref": "#/$defs/reuseEntry"},
-            "R4": {"$ref": "#/$defs/reuseEntry"}
+            "R1": {
+              "$ref": "#/$defs/reuseEntry"
+            },
+            "R2": {
+              "$ref": "#/$defs/reuseEntry"
+            },
+            "R3": {
+              "$ref": "#/$defs/reuseEntry"
+            },
+            "R4": {
+              "$ref": "#/$defs/reuseEntry"
+            }
           }
         },
-        "summary": {"type": "string"},
-        "next": {"type": "string"}
+        "summary": {
+          "type": "string",
+          "description": "One sentence: what is in good shape, then what the to-dos are about. No level."
+        }
       }
     },
     "results": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["label"],
+        "required": [
+          "label"
+        ],
         "properties": {
-          "label": {"type": "string", "minLength": 1},
-          "title": {"type": "string"},
-          "checked": {"type": "boolean", "default": true},
-          "A1": {"$ref": "#/$defs/state"},
-          "A2": {"$ref": "#/$defs/state"},
-          "A3": {"$ref": "#/$defs/state"},
-          "code": {"type": "array", "items": {"type": "string"}},
-          "note": {"type": "string"},
-          "reason": {"type": "string"}
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "boolean",
+            "default": true
+          },
+          "A1": {
+            "$ref": "#/$defs/state"
+          },
+          "A2": {
+            "$ref": "#/$defs/state"
+          },
+          "A3": {
+            "$ref": "#/$defs/state"
+          },
+          "code": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
         }
       }
     },
@@ -99,11 +224,20 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["code", "status"],
+        "required": [
+          "code",
+          "status"
+        ],
         "properties": {
-          "code": {"$ref": "#/$defs/code"},
-          "status": {"$ref": "#/$defs/state"},
-          "note": {"type": "string"}
+          "code": {
+            "$ref": "#/$defs/code"
+          },
+          "status": {
+            "$ref": "#/$defs/state"
+          },
+          "note": {
+            "type": "string"
+          }
         }
       }
     },
@@ -111,43 +245,179 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "code", "impact", "title", "evidence", "todo", "who"],
+        "required": [
+          "id",
+          "code",
+          "severity",
+          "title",
+          "evidence",
+          "todo",
+          "who"
+        ],
         "properties": {
-          "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
-          "code": {"$ref": "#/$defs/code"},
-          "impact": {"enum": ["blocks_l1", "blocks_l2", "caps_l1", "blocks_automation", "reuse", "warning"]},
-          "title": {"type": "string", "minLength": 1},
-          "detail": {"type": "string"},
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
+          },
+          "code": {
+            "$ref": "#/$defs/code"
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "important",
+              "recommended"
+            ],
+            "description": "critical: A1–A3 open; important: B1–B10, a B9 contradiction, R1–R4; recommended: everything else. With code alone only R1–R4 may be important."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string"
+          },
           "evidence": {
             "type": "array",
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["where"],
+              "required": [
+                "where"
+              ],
               "properties": {
-                "where": {"type": "string", "minLength": 1},
-                "quote": {"type": "string"}
+                "where": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "quote": {
+                  "type": "string"
+                }
               }
             }
           },
-          "results": {"type": "array", "items": {"type": "string"}},
-          "todo": {"type": "string", "minLength": 1},
-          "who": {"enum": ["agent_can_fix", "agent_needs_answer", "authors_only"]},
-          "noticed_only": {"type": "boolean"}
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "todo": {
+            "type": "string",
+            "minLength": 1
+          },
+          "who": {
+            "enum": [
+              "agent_can_fix",
+              "agent_needs_answer",
+              "authors_only"
+            ]
+          },
+          "noticed_only": {
+            "type": "boolean"
+          },
+          "at_submission": {
+            "type": "boolean",
+            "description": "B2 or P2 outside a final check: listed under 'When you submit', not counted as a to-do."
+          }
         }
       }
     },
-    "not_checked": {"type": "array", "items": {"type": "string"}}
+    "todos": {
+      "type": "array",
+      "description": "The plain-language to-dos the report shows first. Each covers one or more findings, and every finding belongs to exactly one to-do. Its severity and who are taken from its findings (the highest, the most demanding). Leave it out and every finding is its own to-do.",
+      "items": {
+        "type": "object",
+        "required": [
+          "title",
+          "findings"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What to do, in plain words a researcher understands without the guides."
+          },
+          "why": {
+            "type": "string",
+            "description": "One sentence: why it matters, in plain words."
+          },
+          "findings": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the findings it covers."
+          }
+        }
+      }
+    },
+    "not_checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   },
   "$defs": {
-    "state": {"enum": ["met", "not_met", "not_settled", "not_applicable", "not_checked"]},
-    "code": {"enum": ["A1", "A2", "A3", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "C1", "C2", "C3", "C4", "P1", "P2", "R1", "R2", "R3", "R4", "G1", "G2", "G3", "G4", "J"]},
+    "state": {
+      "enum": [
+        "met",
+        "not_met",
+        "not_settled",
+        "not_applicable",
+        "not_checked"
+      ]
+    },
+    "code": {
+      "enum": [
+        "A1",
+        "A2",
+        "A3",
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B9",
+        "B10",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "P1",
+        "P2",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "J"
+      ]
+    },
     "reuseEntry": {
       "type": "object",
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "properties": {
-        "status": {"enum": ["met", "not_met", "not_settled"]},
-        "note": {"type": "string"}
+        "status": {
+          "enum": [
+            "met",
+            "not_met",
+            "not_settled"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
       }
     }
   }
